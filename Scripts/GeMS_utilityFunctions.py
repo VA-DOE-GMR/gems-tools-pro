@@ -245,11 +245,11 @@ def isQuestionable(confidenceValue):
 
 # returns True if orientationType is a planar (not linear) feature
 def isPlanar(orientationType):
-    planarTypes = ["joint", "bedding", "cleavage", "foliation", "parting"]
     isPlanarType = False
-    for pT in planarTypes:
+    for pT in ("joint", "bedding", "cleavage", "foliation", "parting"):
         if pT in orientationType.lower():
             isPlanarType = True
+            break
     return isPlanarType
 
 
