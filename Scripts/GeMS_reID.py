@@ -90,6 +90,7 @@ def doReID(fc):
     for exPfx in exemptedPrefixes:
         if fc.find(exPfx) == 0:
             doReID = False
+            break
     return doReID
 
 
@@ -103,7 +104,7 @@ def idRoot(tb, rootCounter):
     if tb in idRootDict:
         return idRootDict[tb], rootCounter
     else:
-        rootCounter = rootCounter + 1
+        rootCounter += 1
         return "X" + str(rootCounter) + "X", rootCounter
 
 
@@ -114,7 +115,7 @@ def getPFKeys(table):
     pKey = ""
     for field in fields2:
         ### this assumes only 1 _ID field!
-        if field.name == table + "_ID":
+        if field.name == "%s_ID" % table:
             pKey = field.name
         else:
             if field.name.find("ID") > 0 and field.type == "String":
@@ -133,22 +134,22 @@ def inventoryDatabase(dbf, noSources):
                 tables.remove(tb)
                 addMsgAndPrint("    skipping DataSources")
     for table in tables:
-        addMsgAndPrint(" Table: " + table)
+        addMsgAndPrint(" Table: %s" % table)
         pKey, fKeys = getPFKeys(table)
         fctbs.append([dbf, "", table, pKey, fKeys])
     fdsets = arcpy.ListDatasets()
     for fdset in fdsets:
-        arcpy.env.workspace = dbf + "/" + fdset
+        arcpy.env.workspace = "%s/%s" % (dbf,fdset)
         fcs = arcpy.ListFeatureClasses()
         for fc in fcs:
-            addMsgAndPrint(" FC: " + fc)
+            addMsgAndPrint(" FC: %s" % fc)
             if doReID(fc):  # Does a check for exempted prefixes
                 pKey, fKeys = getPFKeys(fc)
                 fctbs.append([dbf, fdset, fc, pKey, fKeys])
 
 
 def buildIdDict(table, sortKey, keyRoot, pKey, lastTime, useGUIDs):
-    addMsgAndPrint("  Setting new _IDs for " + table)
+    addMsgAndPrint("  Setting new _IDs for %s" % table)
     result = arcpy.GetCount_management(table)
     nrows = int(result.getOutput(0))
     width = int(math.ceil(math.log10(nrows + 1)))
@@ -171,7 +172,7 @@ def buildIdDict(table, sortKey, keyRoot, pKey, lastTime, useGUIDs):
         except:
             print("ERROR")
             print("pKey = " + str(pKey) + "  newID = " + str(newID))
-        n = n + 1
+        n += 1
         # print oldID, newID
         # add oldID,newID to idDict
         if oldID != "" and oldID != None:
@@ -182,7 +183,7 @@ def buildIdDict(table, sortKey, keyRoot, pKey, lastTime, useGUIDs):
 
 
 def reID(table, keyFields, lastTime, outfile):
-    addMsgAndPrint("  resetting IDs for " + table)
+    addMsgAndPrint("  resetting IDs for %s" % table)
     arcpy.env.workspace = dbf
     edit = arcpy.da.Editor(arcpy.env.workspace)
     edit.startEditing(False, True)
@@ -198,7 +199,7 @@ def reID(table, keyFields, lastTime, outfile):
             else:
                 outfile.write(table + " " + field + " " + str(oldValue) + "\n")
         rows.updateRow(row)
-        n = n + 1
+        n += 1
         row = next(rows)
     edit.stopOperation()
     edit.stopEditing(True)
@@ -263,7 +264,7 @@ def main(lastTime, dbf, useGUIDs, noSources):
                     tableName, sortKey, prefix, pKey, lastTime, useGUIDs
                 )
             else:
-                addMsgAndPrint("Skipping " + tableName + ", no field " + sortKey[:-2])
+                addMsgAndPrint("Skipping %s, no field %s" % (tableName,sortKey[:-2]))
 
     # purge IdDict of quasi-null keys
     addMsgAndPrint("Purging idDict of quasi-null keys")
@@ -273,11 +274,9 @@ def main(lastTime, dbf, useGUIDs, noSources):
             print("NullKey", len(key))
             del idDict[key]
 
-    outfile = open(dbf + ".txt", "w")
+    outfile = open("%s.txt" % dbf, "w")
     outfile.write(
-        "Database "
-        + dbf
-        + ". \nList of ID values that do not correspond to any primary key in the database\n"
+        "Database %s. \nList of ID values that do not correspond to any primary key in the database\n" % dbf
     )
     outfile.write("--table---field----field value---\n")
     for fctb in fctbs:
