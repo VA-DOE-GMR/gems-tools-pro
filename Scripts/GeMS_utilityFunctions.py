@@ -103,11 +103,10 @@ def writeLogfile(gdb, msg):
     timeUser = "[" + time.asctime() + "][" + os.environ["USERNAME"] + "] "
     logfileName = os.path.join(gdb, "00log.txt")
     try:
-        logfile = open(os.path.join(gdb, logfileName), "a")
-        logfile.write(timeUser + msg + "\n")
-        logfile.close()
+        with open(os.path.join(gdb,logfileName),"a") as logfile:
+            logfile.write("%s%s\n" % (timeUser,msg))
     except:
-        addMsgAndPrint("Failed to write to " + logfileName)
+        addMsgAndPrint("Failed to write to %s" % logfileName)
         addMsgAndPrint("  maybe file is already open?")
 
 
