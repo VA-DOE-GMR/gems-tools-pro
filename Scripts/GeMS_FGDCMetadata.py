@@ -21,7 +21,7 @@ import spatial_utils as su
 import copy
 import requests
 
-versionString = "GeMS_FGDCMetadata.py, version of 9/27/23"
+versionString = "GeMS_FGDCMetadata.py, version of 2/27/24"
 rawurl = "https://raw.githubusercontent.com/DOI-USGS/gems-tools-pro/master/Scripts/GeMS_FGDCMetadata.py"
 guf.checkVersion(versionString, rawurl, "gems-tools-pro")
 
@@ -108,11 +108,12 @@ def max_bounding(db_path):
     for layer in ogr.Open(db_path):
         # if layer.GetGeomType() != 100:
         if "MapUnitPolys" in layer.GetName() or "ContactsAndFaults" in layer.GetName():
-            bounding = su.get_bounding(str(db_path), layer.GetName())
-            north.append(bounding.find("northbc").text)
-            south.append(bounding.find("southbc").text)
-            west.append(bounding.find("westbc").text)
-            east.append(bounding.find("eastbc").text)
+            if layer.GetSpatialRef():
+                bounding = su.get_bounding(str(db_path), layer.GetName())
+                north.append(bounding.find("northbc").text)
+                south.append(bounding.find("southbc").text)
+                west.append(bounding.find("westbc").text)
+                east.append(bounding.find("eastbc").text)
 
     bounding.find("northbc").text = max(north)
     bounding.find("southbc").text = min(south)
