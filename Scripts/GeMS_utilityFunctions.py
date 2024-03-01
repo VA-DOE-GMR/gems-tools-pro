@@ -8,9 +8,8 @@ editPrefixes = ("xxx", "edit_", "errors_", "ed_")
 debug = False
 import requests
 
-from importlib import reload
-
-reload(gdef)
+# from importlib import reload
+# reload(gdef)
 
 # I. General utilities
 
@@ -104,11 +103,10 @@ def writeLogfile(gdb, msg):
     timeUser = "[" + time.asctime() + "][" + os.environ["USERNAME"] + "] "
     logfileName = os.path.join(gdb, "00log.txt")
     try:
-        logfile = open(os.path.join(gdb, logfileName), "a")
-        logfile.write(timeUser + msg + "\n")
-        logfile.close()
+        with open(os.path.join(gdb,logfileName),"a") as logfile:
+            logfile.write("%s%s\n" % (timeUser,msg))
     except:
-        addMsgAndPrint("Failed to write to " + logfileName)
+        addMsgAndPrint("Failed to write to %s" % logfileName)
         addMsgAndPrint("  maybe file is already open?")
 
 
@@ -246,11 +244,11 @@ def isQuestionable(confidenceValue):
 
 # returns True if orientationType is a planar (not linear) feature
 def isPlanar(orientationType):
-    planarTypes = ["joint", "bedding", "cleavage", "foliation", "parting"]
     isPlanarType = False
-    for pT in planarTypes:
+    for pT in ("joint", "bedding", "cleavage", "foliation", "parting"):
         if pT in orientationType.lower():
             isPlanarType = True
+            break
     return isPlanarType
 
 
@@ -350,7 +348,7 @@ def gdb_object_dict(gdb_path):
                 if (
                     any(n in k.lower() for n in (a.lower(), camel_to_snake(a)))
                     and gdef.shape_dict[a] in v["concat_type"].lower()
-                    and not "cmu" in a.lower()
+                    # and not "cmu" in a.lower()
                 ):
                     # set the gems_equivalent key to the GeMS CamelCase name
                     v["gems_equivalent"] = a

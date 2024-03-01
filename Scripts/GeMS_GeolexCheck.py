@@ -36,13 +36,9 @@ import tempfile
 import GeMS_utilityFunctions as guf
 
 
-versionString = "GeMS_GeolexCheck.py, 8/21/23"
-rawurl = "https://raw.githubusercontent.com/DOI-USGS/gems-tools-pro/master/Scripts/GeMS_GeolexCheck.py"
+versionString = "GeMS_GeolexCheck.py, 1/10/24"
+rawurl = "https://raw.githubusercontent.com/DO/I-USGS/gems-tools-pro/master/Scripts/GeMS_GeolexCheck.py"
 guf.checkVersion(versionString, rawurl, "gems-tools-pro")
-
-# initialize empty list to collect usage matches in order to avoid
-# displaying redundant matches.
-usages = []
 
 
 # STRING AND USAGE
@@ -117,8 +113,12 @@ def ext_check(states_list, fn_ext):
         return False
 
 
-def parse_age(age_str):
-    return age_str.replace("\r\n", "\n")
+def parse_age(age_list):
+    ages = []
+    for age in age_list:
+        ages.append(age.replace("\r\n", "\n"))
+
+    return " | ".join(ages)
 
 
 # API
@@ -241,6 +241,7 @@ def frame_it(d_path, ext_format):
             usecols=lambda x: x.lower() in flds,
             dtype=types,
             keep_default_na=False,
+            skipinitialspace=True,
         )
 
     else:
@@ -249,11 +250,17 @@ def frame_it(d_path, ext_format):
             usecols=lambda x: x.lower() in flds,
             dtype=types,
             keep_default_na=False,
+            skipinitialspace=True,
         )
 
     # smash all column names to lower case because we can't be sure of the case
     # in the input dmu
     dmu_df.columns = [c.lower() for c in dmu_df.columns]
+
+    # hope there is  hierarchykey to sort on
+    if "hierarchykey" in dmu_df.columns:
+        print("sorting")
+        dmu_df.sort_values("hierarchykey", inplace=True)
 
     return dmu_df
 
@@ -370,7 +377,7 @@ def format_excel(xlf):
 
 
 # START
-# ------------------------------------------------------------------------
+# -----------------------------------------------------------------------
 if len(sys.argv) == 1:
     print(__doc__)
     quit()
@@ -435,39 +442,32 @@ if len(sys.argv) == 4:
 else:
     open_xl = True
 
-# units table of geolex db
-this_py = os.path.realpath(__file__)
-geolex_db = os.path.join(
-    os.path.dirname(this_py), "..", "Resources", "geolex_units.json"
-)
+cols = [
+    "HierarchyKey",
+    "MapUnit",
+    "Name",
+    "Fullname",
+    "Age",
+    "Extent",  # DMU Contents
+    "GeolexID",
+    "Name",
+    "Usage",
+    "Age",
+    "Extent",
+    "URL",  # Geolex Results
+    "Extent Match?",
+    "Usage Match?",
+    "Age Match?",
+    "Remarks",
+    "References",
+]
 
-# set up a pandas data frame
-d = {}
-df = pd.DataFrame(
-    columns=[
-        "HierarchyKey",
-        "MapUnit",
-        "Name",
-        "Fullname",
-        "Age",
-        "Extent",  # DMU Contents
-        "GeolexID",
-        "Name",
-        "Usage",
-        "Age",
-        "Extent",
-        "URL",  # Geolex Results
-        "Extent Match?",
-        "Usage Match?",
-        "Age Match?",
-        "Remarks",
-        "References",
-    ]
-)  # Author Review
+# initialize an empty list that will hold all of data frame data
+data = []
 
-df["HierarchyKey"] = df["HierarchyKey"].astype("object")
-
-fields = ["hierarchykey", "mapunit", "name", "fullname", "age"]
+# initialize empty list to collect usage matches in order to avoid
+# displaying redundant matches.
+usages = []
 
 n = 0
 for row in dmu_df.itertuples():
@@ -483,9 +483,9 @@ for row in dmu_df.itertuples():
             sn_subbed = sanitize_text(sn).strip().lower()
             sn_lower = sn.lower()
         else:
-            sn = ""
-            sn_subbed = ""
-            sn_lower = ""
+            sn = None
+            sn_subbed = None
+            sn_lower = None
 
         # full map unit name
         if not (pd.isna(row.fullname) or row.fullname == ""):
@@ -493,9 +493,9 @@ for row in dmu_df.itertuples():
             fn_subbed = sanitize_text(fn).strip().lower()
             fn_lower = fn.lower()
         else:
-            fn = ""
-            fn_subbed = ""
-            fn_lower = ""
+            fn = None
+            fn_subbed = None
+            fn_lower = None
 
         age = row.age
 
@@ -517,11 +517,11 @@ for row in dmu_df.itertuples():
 
         sn_results = None
         fn_results = None
-        if sn:
+        if not sn == None:
             arcpy.AddMessage(f"Looking for GEOLEX names in {sn}")
             sn_results = units_query(sn)
 
-        if fn:
+        if not fn == None:
             arcpy.AddMessage(f"Looking for GEOLEX names in {fn}")
             fn_results = units_query(fn)
 
@@ -545,7 +545,6 @@ for row in dmu_df.itertuples():
         # initiate this row filling out the first 6 columns
         # needs to be defined outside of 'if matches' statement below for the case where
         # there are no valid matches
-        # unit_list = [mu, fn, fm, age, ext]
         unit_list = [hkey, mu, sn, fn, age, ", ".join(dmu_exts)]
 
         # initialize counter to determine contents of unit_list as matches are recorded
@@ -566,10 +565,10 @@ for row in dmu_df.itertuples():
                 for r in [
                     result for result in results if result["unit_name"] == name[1]
                 ]:
-                    arcpy.AddMessage(f"Evaluating usages for {name[1]}")
+                    arcpy.AddMessage(f"  Evaluating usages for {name[1]}")
                     glx_id = r["id"]
                     glx_name = name[1]
-                    glx_age = parse_age(r["age_description"][0])
+                    glx_age = parse_age(r["age_description"])
                     glx_url = r["url"]
 
                     # begin iterating the usages
@@ -618,9 +617,8 @@ for row in dmu_df.itertuples():
                                 ]
                             )
 
-                            # add list to dataframe
-                            unit_series = pd.Series(unit_list, index=df.columns)
-                            df = df.append(unit_series, ignore_index=True)
+                            # add list to data list
+                            data.append(unit_list)
 
                             n = 1
                             i = 1
@@ -649,9 +647,11 @@ for row in dmu_df.itertuples():
                     ["", "", "", "", "", "", "no", "", "", "", ""]
                 )
 
-            # add list to dataframe
-            unit_series = pd.Series(unit_list, index=df.columns)
-            df = df.append(unit_series, ignore_index=True)
+            # add list to data list
+            data.append(unit_list)
+
+# make the data frame
+df = pd.DataFrame(data, columns=cols, dtype="string")
 
 xl_path = os.path.join(dmu_home, f"{out_name}_namescheck.xlsx")
 arcpy.AddMessage(f"Saving {xl_path}")
