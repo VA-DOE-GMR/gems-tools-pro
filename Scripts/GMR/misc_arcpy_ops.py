@@ -1,6 +1,9 @@
 import arcpy
 
 def default_env_parameters():
+    """
+    This sets optimal environment parameters.
+    """
 
     from subprocess import check_output as c_o
 

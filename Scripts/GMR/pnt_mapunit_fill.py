@@ -6,6 +6,10 @@ import sys
 gdb_path = sys.argv[1]
 
 def fill_mapunit_pnt_field(gdb_path : str):
+    """
+    This autofills MapUnit field in point feature classes based upon location relative to polygons
+    in MapUnitPolys.
+    """
 
     try:
         current_workspace = arcpy.env.workspace[:]

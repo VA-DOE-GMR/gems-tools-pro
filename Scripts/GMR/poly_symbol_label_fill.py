@@ -6,6 +6,9 @@ import sys
 gdb_path = sys.argv[1]
 
 def fill_symbol_label_poly_field(gdb_path : str):
+    """
+    This autofills Symbol and Label fields for polygon feature classes.
+    """
 
     try:
         current_workspace = arcpy.env.workspace[:]
@@ -33,7 +36,7 @@ def fill_symbol_label_poly_field(gdb_path : str):
 
     arcpy.AddMessage("Obtaining Label and Symbol information from DescriptionOfMapUnits table...")
 
-    for row in arcpy.da.SearchCursor(f'{arcpy.env.workspace}/DescriptionOfMapUnits',['MapUnit','Label','Symbol']):
+    for row in arcpy.da.SearchCursor('DescriptionOfMapUnits',['MapUnit','Label','Symbol']):
         if not None in (row[0],row[1]) and not row[0] in frozenset(mapunit_label.keys()):
             mapunit_label[row[0]] = row[1]
         if not None in (row[0],row[2]) and not row[0] in frozenset(mapunit_symbol.keys()):
@@ -47,11 +50,11 @@ def fill_symbol_label_poly_field(gdb_path : str):
     for dataset in tuple(arcpy.ListDatasets()):
         poly_fcs = []
         for fc in tuple(arcpy.ListFeatureClasses(feature_type="Polygon",feature_dataset=dataset)):
-            fields = frozenset([field.name for field in arcpy.ListFields(f'{arcpy.env.workspace}/{dataset}/{fc}',field_type='String')])
+            fields = frozenset([field.name for field in arcpy.ListFields(f'{dataset}/{fc}',field_type='String')])
             if 'MapUnit' in fields and 'Label' in fields and 'Symbol' in fields:
                 poly_fcs.append(fc)
         for fc in tuple(poly_fcs):
-            with arcpy.da.UpdateCursor(f'{arcpy.env.workspace}/{dataset}/{fc}',['MapUnit','Label','Symbol']) as cursor:
+            with arcpy.da.UpdateCursor(f'{dataset}/{fc}',['MapUnit','Label','Symbol']) as cursor:
                 for row in cursor:
                     if row[0] in label_mapunits:
                         row[1] = mapunit_label[row[0]]
