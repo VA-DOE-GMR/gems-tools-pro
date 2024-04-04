@@ -2,13 +2,13 @@ import sys
 import arcpy
 import pandas
 
-def main(db,table):
+def main(table):
     """
     Check database glossary against GMR glossary
     """
     GMR_glossary = ".\Complete Glossary For GeMS.xlsx"
 
-    arcpy.env.workspace = db
+    arcpy.env.workspace = table
 
     df_GMR = pandas.read_excel(GMR_glossary, "CompleteGlossary")
     # tables = arcpy.ListTables('Glossary')
@@ -28,18 +28,18 @@ def main(db,table):
     # check Definition
     df_gdb['correct_definition'] = df_gdb['Definition'].isin(df_GMR['Definition'])
 
-    arcpy.AddMessage(f"Definition(s) for the following term(s) were not found in the GMR glossary:\n"
+    arcpy.AddMessage(f"\nDefinition(s) for the following term(s) were not found in the GMR glossary:\n"
                      f"{df_gdb[['Term','Definition']].loc[df_gdb['correct_definition'] == False]}"
                     )
     
     # check Citation
     df_merge = df_gdb.merge(df_GMR,how='left',on='Term')
     df_citations = df_merge.query('DefinitionSourceID_x != DefinitionSourceID_y')
-    arcpy.AddMessage(f"Citation(s) for the following term(s) were not found in the GMR glossary:\n"
-                     f"{df_citations[['Term','DefinitionSourceID_x','DefinitionSourceID_y']]}"
+    df_citations = df_citations.rename(columns={'DefinitionSourceID_x':'Geodatabase','DefinitionSourceID_y':'GMR Glossary'})
+    arcpy.AddMessage(f"\nData Source(s) for the following term(s) were not found in the GMR glossary:\n"
+                     f"{df_citations[['Term','Geodatabase','GMR Glossary']]}"
                     )
     
 if __name__ == "__main__":
-    db = arcpy.GetParameterAsText(0)
-    table = arcpy.GetParameterAsText(1)
-    main(db,table)
+    table = arcpy.GetParameterAsText(0)
+    main(table)
