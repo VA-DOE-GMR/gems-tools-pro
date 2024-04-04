@@ -24,13 +24,11 @@ def fill_mapunit_pnt_field(gdb_path : str):
     edit.startEditing(with_undo=False,multiuser_mode=False)
     edit.startOperation()
 
-    arcpy.AddMessage("Successfully initialized ArcPy Editor.\n\nObtaining list of datasets in geodatabase...")
-    datasets = tuple(arcpy.ListDatasets())
-    arcpy.AddMessage("List obtained.\n")
+    arcpy.AddMessage("Successfully initialized ArcPy Editor.\n\nIterating through dataset(s) in geodatabase...")
 
-    for dataset in datasets:
-        if not len((poly_fcs := tuple([fc for fc in arcpy.ListFeatureClasses(feature_dataset=dataset) if arcpy.Describe(f'{arcpy.env.workspace}/{dataset}/{fc}').shapeType == 'Polygon']))):
-            arcpy.AddMessage(f"No polygon feature class found in {dataset} dataset.\n")
+    for dataset in tuple(arcpy.ListDatasets()):
+        if not len((poly_fcs := tuple([fc for fc in arcpy.ListFeatureClasses(feature_type='Polygon',feature_dataset=dataset)]))):
+            arcpy.AddMessage(f"No polygon feature class found in {dataset} dataset.\n\n")
             continue
         poly_nomin = None
         for poly_fc in poly_fcs:
@@ -38,7 +36,7 @@ def fill_mapunit_pnt_field(gdb_path : str):
                 poly_nomin = poly_fc[:]
                 arcpy.AddMessage(f'Obtaining unique non-empty values from MapUnit in {poly_nomin}...')
                 mapunits = tuple({row[0] for row in arcpy.da.SearchCursor(f'{dataset}/{poly_nomin}',['MapUnit']) if not row[0] is None})
-                arcpy.AddMessage('List of unqiue values successfully obtained.\n')
+                arcpy.AddMessage('List of unqiue values successfully obtained.\n\n')
                 break
         if poly_nomin is None:
             message_str = f'Skipping {dataset} dataset due to '
@@ -46,18 +44,18 @@ def fill_mapunit_pnt_field(gdb_path : str):
                 message_str = f'{message_str}MapUnitPolys not found in dataset.'
             else:
                 message_str = f'{message_str}CS{dataset[-1]}MapUnitPolys not found in dataset.'
-            arcpy.AddMessage("%s\n" % message_str)
+            arcpy.AddMessage("%s\n\n" % message_str)
             del message_str
             gc.collect()
             continue
-        if len((pnt_fc_names := tuple([fc for fc in arcpy.ListFeatureClasses(feature_dataset=dataset) if arcpy.Describe(f'{arcpy.env.workspace}/{dataset}/{fc}').shapeType == 'Point' and 'MapUnit' in [field.name for field in arcpy.ListFields(f'{arcpy.env.workspace}/{dataset}/{fc}',field_type='String')]]))):
+        if len((pnt_fc_names := tuple([fc for fc in arcpy.ListFeatureClasses(feature_type='Point',feature_dataset=dataset) if 'MapUnit' in [field.name for field in arcpy.ListFields(f'{arcpy.env.workspace}/{dataset}/{fc}',field_type='String')]]))):
             arcpy.AddMessage("Generating temporary point layer features...")
             pnt_lyrs = []
             for n in range(len(pnt_fc_names)):
                 arcpy.management.MakeFeatureLayer(f'{dataset}/{pnt_fc_names[n]}',f'pnt_lyr_{n}')
                 pnt_lyrs.append(f'pnt_lyr_{n}')
             pnt_lyrs = tuple(pnt_lyrs)
-            arcpy.AddMessage("Layer point features generated.\n")
+            arcpy.AddMessage("Layer point features generated.\n\n")
             pnt_oid = []
             pnt_mapunit = []
             arcpy.AddMessage(f"Generating temporary polygon layer feature of {poly_nomin}...")
@@ -80,11 +78,11 @@ def fill_mapunit_pnt_field(gdb_path : str):
                         if row[0] in pnt_oid:
                             row[1] = pnt_mapunit[pnt_oid.index(row[0])]
                         cursor.updateRow(row)
-            arcpy.AddMessage("MapUnit field for point feature classes in %s dataset have been filled.\n" % dataset)
+            arcpy.AddMessage("MapUnit field for point feature classes in %s dataset have been filled.\n\n" % dataset)
         else:
-            arcpy.AddMessage("No point feature classes with a MapUnit field were found in %s dataset.\n" % dataset)
+            arcpy.AddMessage("No point feature classes with a MapUnit field were found in %s dataset.\n\n" % dataset)
 
-    arcpy.AddMessage("Saving edits...")
+    arcpy.AddMessage("Changes successfully applied.\n\nSaving edits...")
 
     try:
         edit.stopOperation()
