@@ -31,6 +31,22 @@ def autofill_DAS(gdb_path,delete_unused):
 
     # Gather list of all DASIDs used.
 
+    def odbcError() -> None:
+
+        import pyodbc
+        db_server_drivers = tuple(pyodbc.drivers())
+        ms_odbc_driver = None
+        for driver in tuple(pyodbc.drivers()):
+            if driver.startswith('ODBC Driver'):
+                ms_odbc_driver = driver[:]
+                break
+        if ms_odbc_driver is None:
+            arcpy.AddMessage("\n\nNo ODBC Driver for SQL Server was found on your machine.")
+        else:
+            arcpy.AddMessage("\n\nYou have an unsupported/outdated version of Microsoft ODBC Driver for SQL Server installed on your machine.")
+
+        return None
+
     relevant_fields = frozenset(('DataSourceID','DataSources_ID','LocationSourceID','OrientationSourceID','DefinitionSourceID'))
 
     found_dasids = set()
@@ -81,15 +97,30 @@ def autofill_DAS(gdb_path,delete_unused):
     if os.path.exists(f"{arcpy.env.workspace[:arcpy.env.workspace.rfind('/')]}/naloe_zelmatitum.sde"):
         os.remove(f"{arcpy.env.workspace[:arcpy.env.workspace.rfind('/')]}/naloe_zelmatitum.sde")
 
-    arcpy.AddMessage("List of DASIDs compiled.\n\nEstablishing temporary connection to SQL Server geodatabase and obtaining master list of DASID information...")
+    arcpy.AddMessage("List of DASIDs compiled.\n\nConnecting to Master DAS table in SDE...")
 
-    try:
-        arcpy.management.CreateDatabaseConnection((sde_directory := arcpy.env.workspace[:arcpy.env.workspace.rfind('/')]),"naloe_zelmatitum","SQL_SERVER",instance="WSQ06627, 50000",account_authentication="OPERATING_SYSTEM_AUTH",database="DGMRgeo")
-    except Exception:
-        arcpy.AddError("An error has transpired while attempting to establish and generate SDE. Make sure your computer's drivers are of an expected version required for arcpy.management.CreateDatabaseConnection to function as intended. You may need to ask someone with adminstrative permissions to update said driver(s).")
-        return
+    if not os.path.exists("Z:/PROJECTS/MAPPING/GuidanceDocs/GeMS/gems-tools-pro-GMR/SDE_connection.sde"):
+        arcpy.AddError("Path to pre-existing SDE cannot be found/reached.\n\nAttempting to generate temporary SDE...")
+        try:
+            arcpy.management.CreateDatabaseConnection((sde_directory := arcpy.env.workspace[:arcpy.env.workspace.rfind('/')]),"naloe_zelmatitum","SQL_SERVER",instance="WSQ06627, 50000",account_authentication="OPERATING_SYSTEM_AUTH",database="DGMRgeo")
+            arcpy.env.workspace = f'{sde_directory}/naloe_zelmatitum.sde'
+        except Exception:
+            arcpy.AddError("An error has transpired while attempting to establish and generate temporary SDE.")
+            odbcError()
+            return
+    else:
+        try:
+            arcpy.env.workspace = "Z:/PROJECTS/MAPPING/GuidanceDocs/GeMS/gems-tools-pro-GMR/SDE_connection.sde"
+        except Exception:
+            arcpy.AddError("An error has transpired when attempting to connecting to SDE.\n\nAttempting to generate temporary SDE...")
+            try:
+                arcpy.management.CreateDatabaseConnection((sde_directory := arcpy.env.workspace[:arcpy.env.workspace.rfind('/')]),"naloe_zelmatitum","SQL_SERVER",instance="WSQ06627, 50000",account_authentication="OPERATING_SYSTEM_AUTH",database="DGMRgeo")
+                arcpy.env.workspace = f'{sde_directory}/naloe_zelmatitum.sde'
+            except Exception:
+                arcpy.AddError("An error has transpired while attempting to establish and generate SDE.")
+                odbcError()
+                return
 
-    arcpy.env.workspace = f'{sde_directory}/naloe_zelmatitum.sde'
     temp_table = arcpy.management.MakeTableView("DGMRgeo.DBO.DataSources",'temp_table')
     source_dict = {row[3] : (row[0],row[1],row[2]) for row in arcpy.da.SearchCursor(temp_table,['Source','Notes','URL','DataSources_ID']) if not None in (row[0],row[3])}
     master_dasids = frozenset(source_dict.keys())
@@ -103,10 +134,9 @@ def autofill_DAS(gdb_path,delete_unused):
     except Exception:
         pass
 
-    del sde_directory
     gc.collect()
 
-    arcpy.AddMessage("Master list of DASID information successfully compiled.\n\nUpdating DataSources table...")
+    arcpy.AddMessage("Master list of DASID information successfully compiled.\n\nUpdating DataSources table from Master DAS table...")
 
     num_existing_rows = 0
     arcpy.env.workspace = gdb_path.replace('\\','/')
