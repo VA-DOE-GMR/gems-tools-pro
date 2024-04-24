@@ -27,6 +27,8 @@ def mergeMatchingPolygons(gdb_path : str):
 
     required_fields = ('MapUnit','IdentityConfidence','Label','Symbol','DataSourceID','Notes')
 
+    arpy.AddMessage("Iterating through all polygons present in geodatabase...")
+
     for dataset in tuple(arcpy.ListDatasets()):
         for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset,feature_type='Polygon')):
             fields = tuple([field.name for field in tuple(arcpy.ListFields(f'{dataset}/{fc}'))])
@@ -155,5 +157,7 @@ def mergeMatchingPolygons(gdb_path : str):
         pass
 
     gc.collect()
+
+    arcpy.AddMessage("Process successful!")
 
 mergeMatchingPolygons(gdb_path)
