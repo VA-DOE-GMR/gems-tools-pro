@@ -33,7 +33,11 @@ def mergeMatchingPolygons(gdb_path : str):
     for dataset in tuple(arcpy.ListDatasets()):
         for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset,feature_type='Polygon')):
             arcpy.AddMessage(f"Merging polygons in {fc}...")
+            # Information gathered and required to create a merged version of
+            # polygons in a polygon feature class.
             polygon_mergers = []
+            # This is to prevent this tool from failing if non-GeMS/FGDC feature
+            # classes are encountered that may not have all these fields.
             required_fields = ['MapUnit','IdentityConfidence','Label','Symbol','DataSourceID','Notes']
             fields = tuple([field.name for field in tuple(arcpy.ListFields(f'{dataset}/{fc}'))])
             oid_name = fields[0]
@@ -44,6 +48,10 @@ def mergeMatchingPolygons(gdb_path : str):
             if oid_name is None:
                 continue
             required_fields.insert(0,oid_name)
+            # This keeps track of the maximum number of characters currently
+            # allowed in the Notes field and number of maximum characters
+            # required to concatenate Notes from polygon feature that shall be
+            # appended to each other.
             max_notes_length = 0
             new_length = 0
             for field in tuple(arcpy.ListFields(f'{dataset}/{fc}',field_type='String')):
@@ -51,7 +59,12 @@ def mergeMatchingPolygons(gdb_path : str):
                     max_notes_length = field.length
                     new_length = field.length
                     break
+            # This keeps track of which features have already been checked and
+            # will be skipped if already present in set.
             ignore = set()
+            # Create Feature Layer to prevent odd slowdown and memory behavior
+            # of SelectLayerByLocation and SelectLayerByAttribute
+            # Management tools.
             arcpy.management.MakeFeatureLayer(f'{dataset}/{fc}','temp_lyr')
             for row in arcpy.da.SearchCursor('temp_lyr',required_fields):
                 if row[0] in ignore:
@@ -66,6 +79,7 @@ def mergeMatchingPolygons(gdb_path : str):
                 selected_polys = arcpy.management.SelectLayerByLocation(selected_polys,'BOUNDARY_TOUCHES','temp_lyr')
                 selected_info = {item[0] : (item[2],item[3],item[4],item[5],item[6]) for item in arcpy.da.SearchCursor(selected_polys,required_fields) if item[1] == saved_info[1]}
                 if len((selected_keys := array('i',selected_info.keys()))) > 1:
+                    # Matching MapUnit was found in touching polygons.
                     for selected_key in selected_keys:
                         for n in range(4):
                             if saved_info[n+2] is None:
@@ -83,8 +97,12 @@ def mergeMatchingPolygons(gdb_path : str):
                                     selected_info.pop(selected_key)
                                     break
                     if len((selected_keys := array('i',selected_info.keys()))) > 1:
+                        # Identical information found in touching polygons.
                         checked = {row[0]}
                         sub_iteration_complete = False
+                        # This iterates through all matching touching polygons
+                        # and checks if they also touch matching polygons
+                        # that can be grouped together.
                         while not sub_iteration_complete:
                             sub_iteration_complete = True
                             for selected_key in selected_keys:
@@ -94,6 +112,8 @@ def mergeMatchingPolygons(gdb_path : str):
                                 selected_polys = arcpy.management.SelectLayerByLocation(selected_polys,'BOUNDARY_TOUCHES','temp_lyr')
                                 checked.add(selected_key)
                                 if len((new_info := {item[0] : (item[2],item[3],item[4],item[5],item[6]) for item in arcpy.da.SearchCursor(selected_polys,required_fields) if item[1] == saved_info[1] and not item[0] in selected_keys and not item[0] in checked})):
+                                    # Notes is the only field that does not need to be identical.
+                                    # IdentityConfidence, Label, Symbol, and DataSourceID all must match.
                                     for new_key in array('i',new_info.keys()):
                                         for n in range(4):
                                             if saved_info[n+2] is None:
@@ -116,6 +136,8 @@ def mergeMatchingPolygons(gdb_path : str):
                                             selected_info[new_key] = new_info[new_key]
                             if not sub_iteration_complete:
                                 selected_keys = array('i',selected_info.keys())
+                        # Create a concatenated string of differing Notes or
+                        # value to None if they are all blank.
                         notes_items = set()
                         if not saved_info[6] is None:
                             notes_items.add(saved_info[6])
@@ -144,10 +166,13 @@ def mergeMatchingPolygons(gdb_path : str):
                         for selected_key in selected_keys:
                             ignore.add(selected_key)
                     else:
+                        # No matching information found in touching polygons.
                         ignore.add(row[0])
                 else:
+                    # No matching MapUnit value was found in touching polygons.
                     ignore.add(row[0])
             if max_notes_length < new_length:
+                # Increase the maximum number of characters allowed for Notes.
                 arcpy.management.AlterField(f'{dataset}/{fc}','Notes',field_length=new_length)
             for n in range(len((polygon_mergers := tuple(polygon_mergers)))):
                 counter = 0
@@ -155,6 +180,8 @@ def mergeMatchingPolygons(gdb_path : str):
                     for row in cursor:
                         counter += 1
                         if counter == 1:
+                            # Overwrite one of the matching polygons shape and
+                            # Attribute Table values.
                             row[0] = polygon_mergers[n][2]
                             row[1] = polygon_mergers[n][0][2]
                             row[2] = polygon_mergers[n][0][3]
@@ -163,6 +190,7 @@ def mergeMatchingPolygons(gdb_path : str):
                             row[5] = polygon_mergers[n][0][6]
                             cursor.updateRow(row)
                         else:
+                            # Delete the rest of the matching polygons.
                             cursor.deleteRow()
     try:
         arcpy.env.workspace = current_workspace[:]
