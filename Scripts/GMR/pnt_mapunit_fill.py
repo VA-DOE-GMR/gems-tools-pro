@@ -2,6 +2,7 @@ import arcpy
 import gc
 from misc_arcpy_ops import default_env_parameters
 import sys
+from array import array
 
 gdb_path = sys.argv[1]
 
@@ -48,7 +49,7 @@ def fill_mapunit_pnt_field(gdb_path : str):
                 message_str = f'{message_str}MapUnitPolys not found in dataset.'
             else:
                 message_str = f'{message_str}CS{dataset[-1]}MapUnitPolys not found in dataset.'
-            arcpy.AddMessage("%s\n\n" % message_str)
+            arcpy.AddMessage(f"{message_str}\n\n")
             del message_str
             gc.collect()
             continue
@@ -60,8 +61,6 @@ def fill_mapunit_pnt_field(gdb_path : str):
                 pnt_lyrs.append(f'pnt_lyr_{n}')
             pnt_lyrs = tuple(pnt_lyrs)
             arcpy.AddMessage("Layer point features generated.\n\n")
-            pnt_oid = []
-            pnt_mapunit = []
             arcpy.AddMessage(f"Generating temporary polygon layer feature of {poly_nomin}...")
             arcpy.management.MakeFeatureLayer(f'{dataset}/{poly_nomin}','mapunit_poly_lyr')
             arcpy.AddMessage("Polygon layer feature generated.\n\nFilling out MapUnit field for point feature classes...")
@@ -69,7 +68,7 @@ def fill_mapunit_pnt_field(gdb_path : str):
                 for field in arcpy.ListFields(pnt_lyrs[n]):
                     oid_field_name = field.name
                     break
-                pnt_oid = []
+                pnt_oid = array('i',[])
                 pnt_mapunit = []
                 for mapunit in mapunits:
                     selected_polys,count = arcpy.management.SelectLayerByAttribute('mapunit_poly_lyr','NEW_SELECTION',f"MapUnit = '{mapunit}'",'NON_INVERT')
