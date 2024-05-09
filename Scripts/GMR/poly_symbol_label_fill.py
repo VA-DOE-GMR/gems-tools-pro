@@ -58,8 +58,6 @@ def fill_symbol_label_poly_field(gdb_path : str):
                         row[2] = mapunit_symbol[row[0]]
                     cursor.updateRow(row)
 
-    arcpy.AddMessage("Changes successfully applied.\n\nSaving edits...")
-
     try:
         edit.stopOperation()
     except Exception:
@@ -69,7 +67,7 @@ def fill_symbol_label_poly_field(gdb_path : str):
     except Exception:
         pass
 
-    arcpy.AddMessage("Edits saved!")
+    arcpy.AddMessage("Changes successfully applied.")
 
     try:
         arcpy.env.workspace = current_workspace[:]
