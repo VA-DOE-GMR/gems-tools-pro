@@ -22,14 +22,12 @@ def fill_mapunit_pnt_field(gdb_path : str):
 
     default_env_parameters()
 
-    arcpy.AddMessage("Initializing ArcPy Editor...")
-
-    edit = arcpy.da.Editor(arcpy.env.workspace)
-
+    # This is to prevent Error #160250 randomly from occurring.
+    edit = arcpy.da.Editor()
     edit.startEditing(with_undo=False,multiuser_mode=False)
     edit.startOperation()
 
-    arcpy.AddMessage("Successfully initialized ArcPy Editor.\n\nIterating through dataset(s) in geodatabase...")
+    arcpy.AddMessage("Iterating through dataset(s) in geodatabase...")
 
     for dataset in tuple(arcpy.ListDatasets()):
         if not len((poly_fcs := tuple([fc for fc in arcpy.ListFeatureClasses(feature_type='Polygon',feature_dataset=dataset)]))):
