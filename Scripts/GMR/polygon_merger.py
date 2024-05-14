@@ -28,6 +28,12 @@ def mergeMatchingPolygons(gdb_path : str):
 
     default_env_parameters()
 
+    # This is to prevent Error #160250 randomly from occurring. This also avoids
+    # other arbitrary limits to modifying feature classes and/or tables.
+    edit = arcpy.da.Editor(arcpy.env.workspace)
+    edit.startEditing(with_undo=False,multiuser_mode=False)
+    edit.startOperation()
+
     arcpy.AddMessage("Iterating through all polygons present in geodatabase...")
 
     for dataset in tuple(arcpy.ListDatasets()):
@@ -192,6 +198,21 @@ def mergeMatchingPolygons(gdb_path : str):
                         else:
                             # Delete the rest of the matching polygons.
                             cursor.deleteRow()
+
+    try:
+        edit.stopOperation()
+    except Exception:
+        pass
+    try:
+        edit.stopEditing(save_changes=True)
+    except Exception:
+        pass
+
+    try:
+        arcpy.env.workspace = current_workspace[:]
+    except Exception:
+        pass
+    
     try:
         arcpy.env.workspace = current_workspace[:]
     except Exception:
