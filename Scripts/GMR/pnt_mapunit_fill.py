@@ -23,7 +23,7 @@ def fill_mapunit_pnt_field(gdb_path : str):
     default_env_parameters()
 
     # This is to prevent Error #160250 randomly from occurring.
-    edit = arcpy.da.Editor()
+    edit = arcpy.da.Editor(arcpy.env.workspace)
     edit.startEditing(with_undo=False,multiuser_mode=False)
     edit.startOperation()
 
