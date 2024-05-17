@@ -71,7 +71,7 @@ startDict = {
         ["Age", "String", "NullsOK", defaultLength],
         ["Description", "String", "NullsOK", memoLength],
         ["HierarchyKey", "String", "NoNulls", defaultLength],
-        ["ParagraphStyle", "String", "NoNulls", defaultLength],
+        ["ParagraphStyle", "String", "NullsOK", defaultLength],
         ["Label", "String", "NullsOK", 30],
         ["Symbol", "String", "NullsOK", defaultLength],
         ["AreaFillRGB", "String", "NullsOK", defaultLength],
@@ -393,6 +393,25 @@ DefaultExIDConfidenceValues = [
         'Identity of a feature cannot be determined using relevant observations and scientific judgment; therefore, one cannot be reasonably confident in the credibility of this interpretation. For example, IdentityConfidence = questionable is appropriate when a geologist reasons "I can see some kind of planar feature that separates map units in this outcrop, but I cannot be certain if it is a contact or a fault."',
         "FGDC-STD-013-2006",
     ],
+]
+
+ParagraphStyleValues = [
+    "DMU Headnote - 1 Line",
+    "DMU Headnote - More Than 1 Line",
+    "DMU Headnote Paragraph",
+    "DMU Headnote - More Than 1 Line",
+    "DMU Unit 1 (1st after heading)",
+    "DMU Unit 1",
+    "DMU Unit 2",
+    "DMU Unit 3",
+    "DMU Unit 4",
+    "DMU Unit 5",
+    "DMU-Heading1",
+    "DMU-Heading2",
+    "DMU-Heading3",
+    "DMU-Heading4",
+    "DMU-Heading5",
+    "Run-inHead",
 ]
 
 
