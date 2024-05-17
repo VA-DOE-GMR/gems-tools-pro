@@ -1,5 +1,3 @@
-<img width="250" align="right" src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/USGS_logo_green.svg/500px-USGS_logo_green.svg.png"/>
-
 [![GitHub tag (latest SemVer)](https://img.shields.io/github/v/release/DOI-USGS/gems-tools-pro)](https://github.com/DOI-USGS/gems-tools-pro/releases/latest) 
 [![Wiki](https://img.shields.io/badge/-wiki-orange)](https://github.com/DOI-USGS/gems-tools-pro/wiki) 
 [![Discuss](https://img.shields.io/badge/-discuss-orange)](https://github.com/DOI-USGS/gems-tools-pro/discussions) 
