@@ -10,6 +10,23 @@ import os
 gdb_path = sys.argv[1]
 enable_process = tuple([sys.argv[n] for n in range(2,8)])
 
+def upperFields(item_path : str, fields) -> None:
+
+    field_range = range(len(fields))
+
+    with arcpy.da.UpdateCursor(item_path,fields) as cursor:
+        for row in cursor:
+            update_row = False
+            for n in field_range:
+                if not row[n] is None:
+                    if (new_str := row[n].upper()) != row[n]:
+                        row[n] = new_str
+                        update_row = True
+            if update_row:
+                cursor.updateRow(row)
+
+    return None
+
 def temp_SDE() -> bool:
     '''This only executes when the expected SDE file's location cannot be found.
     Therefore, a temporary SDE needs to be created in order to get DASID
@@ -117,6 +134,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
     datasets = tuple(arcpy.ListDatasets())
 
+    # For simplification purposes.
     class GeMS_Editor:
 
         def __init__(self):
@@ -147,51 +165,46 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         explicit_typo_fix(table)
 
     # change these to uppercase
+    # DataSourceID,DescriptionSourceID,DefinitionSourceID,LocationSourceID,OrientationSourceID
+
+    valid_fields = frozenset(('DataSourceID','LocationSourceID','OrientationSourceID'))
 
     for dataset in datasets:
         for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset)):
-            dasid_field_exists = False
-            for field in tuple(arcpy.ListFields(f'{dataset}/{fc}',field_type='String')):
-                if field.name is 'DataSourceID':
-                    dasid_field_exists = True
-                    break
-            if dasid_field_exists:
-                with arcpy.da.UpdateCursor(f'{dataset}/{fc}','DataSourceID') as cursor:
-                    for row in cursor:
-                        if not row[0] is None:
-                            if (new_str := row[0].upper()) != row[0]:
-                                row[0] = new_str
-                                cursor.updateRow(row)
+            if len((id_fields := tuple([field.name for field in tuple(arcpy.ListFields(f'{dataset}/{fc}',field_type='String')) if field.name in valid_fields or field.name.endswith('_ID')]))):
+                upperFields(f'{dataset}/{fc}',id_fields)
 
-    del dasid_field_exists
+    del id_fields
 
-    with arcpy.da.UpdateCursor('Glossary','DefinitionSourceID') as cursor:
-        for row in cursor:
-            if not row[0] is None:
-                if (new_str := row[0].upper()) != row[0]:
-                    row[0] = new_str
-                    cursor.updateRow(row)
+    upperFields('Glossary',('DefinitionSourceID','Glossary_ID'))
+    upperFields('DescriptionOfMapUnits',('DescriptionSourceID','DescriptionOfMapUnits_ID'))
+    upperFields('DataSources',('DataSources_ID',))
 
     # change these to lowercase:
-    # IsConcealed
+    # IsConcealed,IdentityConfidence,ExistenceConfidence
+
+    valid_fields = frozenset(('IsConcealed','IdentityConfidence','ExistenceConfidence'))
 
     for dataset in datasets:
-        for fc in arcpy.ListFeatureClasses(feature_dataset=dataset):
-            isconcealed_exists = False
-            for field in tuple(arcpy.ListFields(f'{dataset}/{fc}',field_type='String')):
-                if field.name is 'IsConcealed':
-                    isconcealed_exists = True
-                    break
-            if isconcealed_exists:
-                with arcpy.da.UpdateCursor(f'{dataset}/{fc}','IsConcealed') as cursor:
+        for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset)):
+            if len((fields := tuple([field.name for field in tuple(arcpy.ListFields(f'{dataset}/{fc}',field_type='String')) if field.name in valid_fields]))):
+                field_range = range(len(fields))
+                with arcpy.da.UpdateCursor(f'{dataset}/{fc}',fields) as cursor:
                     for row in cursor:
-                        if not row[0] is None:
-                            if (new_str := row[0].lower()) != row[0]:
-                                row[0] = new_str
-                                cursor.updateRow(row)
-                            del new_str
+                        update_row = False
+                        for n in field_range:
+                            if not row[n] is None:
+                                if (new_str := row[n].lower()) != row[n]:
+                                    row[n] = new_str
+                                    update_row = True
+                                del new_str
+                        if update_row:
+                            cursor.updateRow(row)
+                        del update_row
+                del field_range
 
-    del isconcealed_exists
+    del fields ; del valid_fields
+    gc.collect()
 
     edit.end_session()
 
@@ -231,16 +244,13 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                         del rgb_vals ; del new_str ; del new_symbol
                     del current_rgb
 
-        del update_row
-
         arcpy.AddMessage("Changes successfully applied.\n\nSaving edits...")
 
         edit.end_session()
 
         arcpy.AddMessage("Edits saved!\n\n")
 
-        del oid_name
-
+        del update_row ; del oid_name
         gc.collect()
 
 
@@ -482,6 +492,9 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
         del dasid_fields ; del valid_fields
         gc.collect()
+
+        for row in arcpy.da.SearchCursor('DescriptionOfMapUnits','DescriptionSourceID'):
+            found_items.add(row[0])
 
         for row in arcpy.da.SearchCursor('Glossary','DefinitionSourceID'):
             found_items.add(row[0])
