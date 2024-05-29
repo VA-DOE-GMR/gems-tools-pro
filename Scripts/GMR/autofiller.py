@@ -90,7 +90,7 @@ def explicit_typo_fix(item_path : str) -> None:
 
     excluded_fields = frozenset(('created_user','last_edited_user','GeoMaterial'))
 
-    if (fields := tuple([field.name for field in tuple(arcpy.ListFields(item_path,field_type='String')) if not field.name in excluded_fields])):
+    if len((fields := tuple([field.name for field in tuple(arcpy.ListFields(item_path,field_type='String')) if not field.name in excluded_fields]))):
 
         field_range = range(len(fields))
 
