@@ -10,6 +10,7 @@ import os
 gdb_path = sys.argv[1]
 enable_process = tuple([sys.argv[n] for n in range(2,8)])
 
+# used to make specific fields uppercase.
 def upperFields(item_path : str, fields) -> None:
 
     field_range = range(len(fields))
@@ -27,6 +28,7 @@ def upperFields(item_path : str, fields) -> None:
 
     return None
 
+# Attempts to create a temporary SDE file, which will be deleted after necessary data is obtained.
 def temp_SDE() -> bool:
     '''This only executes when the expected SDE file's location cannot be found.
     Therefore, a temporary SDE needs to be created in order to get DASID
@@ -39,7 +41,6 @@ def temp_SDE() -> bool:
     except Exception:
         arcpy.AddError("An error has transpired while attempting to establish and generate temporary SDE.")
         import pyodbc
-        db_server_drivers = tuple(pyodbc.drivers())
         ms_odbc_driver = None
         for driver in tuple(pyodbc.drivers()):
             if driver.startswith('ODBC Driver'):
@@ -51,6 +52,7 @@ def temp_SDE() -> bool:
             arcpy.AddMessage("\n\nYou have an unsupported/outdated version of Microsoft ODBC Driver for SQL Server installed on your machine.")
         return False
 
+# Used to fill out _ID fields.
 def gems_id_writer(item_path : str, item_name : str) -> None:
     '''This function handles generating new _ID values for items in a feature
     class or table.
@@ -155,14 +157,17 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
     edit = GeMS_Editor()
 
+    # The following done as they are required to be fixed for the best output as
+    # well as applying fixes and changes that will be required to be done
+    # regardless.
+
     # Removing explicit typos.
 
-    for dataset in datasets:
-        for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset)):
-            explicit_typo_fix(f'{dataset}/{fc}')
-
-    for table in ('Glossary','DescriptionOfMapUnits'):
-        explicit_typo_fix(table)
+    # feature classes
+    map(explicit_typo_fix,tuple([f'{dataset}/{fc}' for dataset in datasets for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset))]))
+    # tables
+    map(explicit_typo_fix,('Glossary','DescriptionOfMapUnits'))
+    gc.collect()
 
     # change these to uppercase
     # DataSourceID,DescriptionSourceID,DefinitionSourceID,LocationSourceID,OrientationSourceID
@@ -171,10 +176,12 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
     for dataset in datasets:
         for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset)):
-            if len((id_fields := tuple([field.name for field in tuple(arcpy.ListFields(f'{dataset}/{fc}',field_type='String')) if field.name in valid_fields or field.name.endswith('_ID')]))):
-                upperFields(f'{dataset}/{fc}',id_fields)
+            feature_item = f'{dataset}/{fc}'
+            if len((id_fields := tuple([field.name for field in tuple(arcpy.ListFields(feature_item,field_type='String')) if field.name in valid_fields or field.name.endswith('_ID')]))):
+                upperFields(feature_item,id_fields)
 
-    del id_fields
+    del id_fields ; del feature_item
+    gc.collect()
 
     upperFields('Glossary',('DefinitionSourceID','Glossary_ID'))
     upperFields('DescriptionOfMapUnits',('DescriptionSourceID','DescriptionOfMapUnits_ID'))
@@ -187,9 +194,10 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
     for dataset in datasets:
         for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset)):
-            if len((fields := tuple([field.name for field in tuple(arcpy.ListFields(f'{dataset}/{fc}',field_type='String')) if field.name in valid_fields]))):
+            feature_item = f'{dataset}/{fc}'
+            if len((fields := tuple([field.name for field in tuple(arcpy.ListFields(feature_item,field_type='String')) if field.name in valid_fields]))):
                 field_range = range(len(fields))
-                with arcpy.da.UpdateCursor(f'{dataset}/{fc}',fields) as cursor:
+                with arcpy.da.UpdateCursor(feature_item,fields) as cursor:
                     for row in cursor:
                         update_row = False
                         for n in field_range:
@@ -203,12 +211,12 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                         del update_row
                 del field_range
 
-    del fields ; del valid_fields
+    del fields ; del valid_fields ; del feature_item
     gc.collect()
 
     edit.end_session()
 
-
+    # Autofill and Fixing DMU Symbol and AreaRGBFill fields
     if enable_process[0] == 'true':
 
         edit = GeMS_Editor()
@@ -218,6 +226,9 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         for field in tuple(arcpy.ListFields('DescriptionOfMapUnits')):
             oid_name = field.name
             break
+
+        # prevents needing to create a range object with each iteration of the for-loop.
+        range_3 = range(3)
 
         with arcpy.da.UpdateCursor('DescriptionOfMapUnits',(oid_name,'AreaFillRGB','Symbol')) as cursor:
             for row in cursor:
@@ -231,7 +242,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                         current_rgb = current_rgb[current_rgb.find(',')+1:]
                         rgb_vals.append(current_rgb[:current_rgb.find(',')])
                         rgb_vals.append(current_rgb[current_rgb.find(',')+1:])
-                        for n in range(3):
+                        for n in range_3:
                             rgb_vals[n].zfill(3)
                         if row[1] != (new_str := f'{rgb_vals[0]},{rgb_vals[1]},{rgb_vals[2]}'):
                             row[1] = new_str
@@ -244,6 +255,8 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                         del rgb_vals ; del new_str ; del new_symbol
                     del current_rgb
 
+        del range_3
+
         arcpy.AddMessage("Changes successfully applied.\n\nSaving edits...")
 
         edit.end_session()
@@ -253,7 +266,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         del update_row ; del oid_name
         gc.collect()
 
-
+    # Autofill Label and Symbol fields of polygon feature classes
     if enable_process[1] == 'true':
 
         # Fillout Symbol and Label fields for polygon feature classes in
@@ -294,7 +307,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
         arcpy.AddMessage("Edits saved!\n\n")
 
-
+    # Autofill MapUnit fields in point feature classes
     if enable_process[2] == 'true':
 
         arcpy.AddMessage("Filling out MapUnit field of point feature classes in geodatabase based upon location relative to polygons in MapUnitPolys...\n")
@@ -316,19 +329,21 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
             if poly_name is None:
                 del poly_name
                 continue
-            arcpy.management.MakeFeatureLayer(f'{dataset}/{poly_name}','temp_poly_lyr')
+            arcpy.management.MakeFeatureLayer((polygon_feature := f'{dataset}/{poly_name}'),'temp_poly_lyr')
             # Polygons with <Null> as the MapUnit value will be ignored.
-            mapunits = {row[0] for row in arcpy.da.SearchCursor(f'{dataset}/{poly_name}','MapUnit') if not row[0] is None}
+            mapunits = {row[0] for row in arcpy.da.SearchCursor(polygon_feature,'MapUnit') if not row[0] is None}
+            del polygon_feature
             if None in mapunits:
                 mapunits.remove(None)
             mapunits = tuple(mapunits)
             for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset,feature_type='Point')):
-                if not 'MapUnit' in [field.name for field in arcpy.ListFields(f'{dataset}/{fc}',field_type='String')]:
+                feature_item = f'{dataset}/{fc}'
+                if not 'MapUnit' in [field.name for field in arcpy.ListFields(feature_item,field_type='String')]:
                     continue
                 arcpy.AddMessage(f'Working on: {fc}\n')
-                arcpy.management.MakeFeatureLayer(f'{dataset}/{fc}','temp_pnt_lyr')
+                arcpy.management.MakeFeatureLayer(feature_item,'temp_pnt_lyr')
                 fields = ["MapUnit"]
-                for field in tuple(arcpy.ListFields(f'{dataset}/{fc}')):
+                for field in tuple(arcpy.ListFields(feature_item)):
                     fields.insert(0,field.name)
                     break
                 fields = tuple(fields)
@@ -343,7 +358,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                     del count
                 if len(matched):
                     oids = array('i',matched.keys())
-                    with arcpy.da.UpdateCursor(f'{dataset}/{fc}',fields) as cursor:
+                    with arcpy.da.UpdateCursor(feature_item,fields) as cursor:
                         for row in cursor:
                             if row[0] in oids:
                                 if row[1] != (new_str := matched[oids[oids.index(row[0])]]):
@@ -353,7 +368,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                     del oids
                 del matched ; del selected_polys ; del selected_pnts
                 gc.collect()
-            del poly_name ; mapunits
+            del poly_name ; mapunits ; del feature_item
             gc.collect()
 
         arcpy.AddMessage("Changes successfully applied.\n\nSaving edits...")
@@ -362,7 +377,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
         arcpy.AddMessage("Edits saved!\n\n")
 
-
+    # Alphabetize Glossary and Add missing terms
     if enable_process[3] == 'true':
 
         arcpy.AddMessage("Alphabetizing and adding missing terms to Glossary...")
@@ -374,18 +389,19 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
         for dataset in datasets:
             for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset)):
-                if len((fields := tuple([field.name for field in arcpy.ListFields(f'{dataset}/{fc}',field_type='String') if field.name in valid_fields]))):
+                feature_item = f'{dataset}/{fc}'
+                if len((fields := tuple([field.name for field in arcpy.ListFields(feature_item,field_type='String') if field.name in valid_fields]))):
                     field_range = range(len(fields))
-                    for row in arcpy.da.SearchCursor(f'{dataset}/{fc}',fields):
+                    for row in arcpy.da.SearchCursor(feature_item,fields):
                         for n in field_range:
                             used_terms.add(row[n])
                     del field_range
 
+        del fields ; del valid_fields ; del feature_item
+        gc.collect()
+
         if None in used_terms:
             used_terms.remove(None)
-
-        del fields ; del valid_fields
-        gc.collect()
 
         logged_terms = []
         logged_def = []
@@ -471,7 +487,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
         arcpy.AddMessage("Edits successfully saved!\n\n")
 
-
+    # Autopopulate DataSources table
     if enable_process[4] == 'true':
 
         arcpy.AddMessage('Filling out and populating DataSources table...')
@@ -483,14 +499,15 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
         for dataset in datasets:
             for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset)):
-                if len((dasid_fields := tuple([field.name for field in tuple(arcpy.ListFields(f'{dataset}/{fc}',field_type='String')) if field.name in valid_fields]))):
+                feature_item = f'{dataset}/{fc}'
+                if len((dasid_fields := tuple([field.name for field in tuple(arcpy.ListFields(feature_item,field_type='String')) if field.name in valid_fields]))):
                     field_range = range(len(dasid_fields))
-                    for row in arcpy.da.SearchCursor(f'{dataset}/{fc}',dasid_fields):
+                    for row in arcpy.da.SearchCursor(feature_item,dasid_fields):
                         for n in field_range:
                             found_items.add(row[n])
                     del field_range
 
-        del dasid_fields ; del valid_fields
+        del dasid_fields ; del valid_fields ; del feature_item
         gc.collect()
 
         for row in arcpy.da.SearchCursor('DescriptionOfMapUnits','DescriptionSourceID'):
@@ -596,7 +613,8 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
             arcpy.AddMesssage("Unable to connect via SDEs! Process has been ended prematurely.\n\n")
 
-        del code_directory
+        del code_directory ; del now_num_rows
+        gc.collect()
 
         if os.path.exists((temp_sde := f'{arcpy.env.workspace[:arcpy.env.workspace.rfind("/")]}/naloe_zelmatitum.sde')):
             os.remove(temp_sde)
@@ -613,10 +631,12 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
         del naloe_zelmatitum
 
+        gc.collect()
 
+    # Autofill _ID fields
     if enable_process[5] == 'true':
 
-        # This should always be the last thing done if enabled.
+        # This should always be the last thing done if enabled and is enabled by default.
 
         arcpy.AddMessage("Filling out _ID fields, excluding DataSources table...")
 
@@ -634,6 +654,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         edit.end_session()
 
         arcpy.AddMessage("Edits successfully saved!\n\n")
+
 
     arcpy.env.workspace = current_workspace[:]
 
