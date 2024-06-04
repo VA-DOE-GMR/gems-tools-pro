@@ -368,8 +368,6 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                     del oids
                 del matched ; del selected_polys ; del selected_pnts
                 gc.collect()
-            del poly_name ; mapunits ; del feature_item
-            gc.collect()
 
         arcpy.AddMessage("Changes successfully applied.\n\nSaving edits...")
 
