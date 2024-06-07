@@ -1,5 +1,10 @@
 from string import punctuation,ascii_letters,digits
+from math import log10,floor
 from array import array
+from decimal import Decimal,getcontext
+from color_code_dict import color_dict
+
+getcontext().prec = 6
 
 alphanum = frozenset(list(f'{digits}{ascii_letters}'))
 double_puncts = tuple([punct * 2 for punct in array('u',list(punctuation))])
@@ -72,3 +77,61 @@ def fixFieldItemString(entry_string : str):
             return entry_string
 
     return None
+
+def rgb_to_fgdc(rgb_vals) -> str:
+    '''Values in tuple/list/array can only be whole numbers
+    between 0 and 255.
+    '''
+
+    fgdc = ''
+
+    for n in range(len(rgb_vals)):
+        # Convert into percentage values.
+        temp_val = Decimal(rgb_vals[n]) / Decimal(255) * Decimal(100)
+        if temp_val <= 8:
+            if Decimal(8) - temp_val <= temp_val:
+                fgdc = f'{fgdc}A'
+            else:
+                fgdc = f'{fgdc}0'
+        elif temp_val > 8 and temp_val <= 13:
+            if Decimal(13) - temp_val <= Decimal(8) - temp_val:
+                fgdc = f'{fgdc}1'
+            else:
+                fgdc = f'{fgdc}A'
+        elif temp_val > 13 and temp_val <= 20:
+            if Decimal(20) - temp_val <= Decimal(13) - temp_val:
+                fgdc = f'{fgdc}2'
+            else:
+                fgdc = f'{fgdc}1'
+        elif temp_val > 20 and temp_val <= 30:
+            if Decimal(30) - temp_val <= Decimal(20) - temp_val:
+                fgdc = f'{fgdc}3'
+            else:
+                fgdc = f'{fgdc}2'
+        elif temp_val > 30 and temp_val <= 40:
+            if Decimal(40) - temp_val <= Decimal(30) - temp_val:
+                fgdc = f'{fgdc}4'
+            else:
+                fgdc = f'{fgdc}3'
+        elif temp_val > 40 and temp_val <= 50:
+            if Decimal(13) - temp_val <= Decimal(8) - temp_val:
+                fgdc = f'{fgdc}5'
+            else:
+                fgdc = f'{fgdc}4'
+        elif temp_val > 50 and temp_val <= 60:
+            if Decimal(60) - temp_val <= Decimal(50) - temp_val:
+                fgdc = f'{fgdc}6'
+            else:
+                fgdc = f'{fgdc}5'
+        elif temp_val > 60 and temp_val <= 70:
+            if Decimal(70) - temp_val <= Decimal(60) - temp_val:
+                fgdc = f'{fgdc}7'
+            else:
+                fgdc = f'{fgdc}6'
+        else:
+            if Decimal(100) - temp_val <= Decimal(70) - temp_val:
+                fgdc = f'{fgdc}X'
+            else:
+                fgdc = f'{fgdc}7'
+
+    return color_dict[fgdc]
