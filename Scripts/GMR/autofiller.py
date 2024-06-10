@@ -90,7 +90,7 @@ def explicit_typo_fix(item_path : str) -> None:
     feature classes and tables, excluding ones that should not be touched.
     '''
 
-    excluded_fields = frozenset(('created_user','last_edited_user','GeoMaterial'))
+    excluded_fields = frozenset(('created_user','last_edited_user','GeoMaterial','Notes'))
 
     if len((fields := tuple([field.name for field in tuple(arcpy.ListFields(item_path,field_type='String')) if not field.name in excluded_fields]))):
 
@@ -162,6 +162,8 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
     # regardless.
 
     # Removing explicit typos.
+
+    arcpy.AddMessage("Fixing explicit typos in feature classes and tables as well as invalid capitalization...")
 
     # feature classes
     map(explicit_typo_fix,tuple([f'{dataset}/{fc}' for dataset in datasets for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset))]))
