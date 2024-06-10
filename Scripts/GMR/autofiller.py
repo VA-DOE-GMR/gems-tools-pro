@@ -8,7 +8,7 @@ from re import sub as re_sub
 import os
 
 gdb_path = sys.argv[1]
-enable_process = tuple([sys.argv[n] for n in range(2,8)])
+enable_process = tuple([sys.argv[n] for n in range(2,7)])
 
 # used to make specific fields uppercase.
 def upperFields(item_path : str, fields) -> None:
@@ -766,7 +766,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         edit.end_session()
 
     # Autofill _ID fields
-    if enable_process[5] == 'true':
+    if enable_process[4] == 'true':
 
         # This should always be the last thing done if enabled and is enabled by default.
 
