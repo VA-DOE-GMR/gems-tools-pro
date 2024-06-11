@@ -28,30 +28,6 @@ def upperFields(item_path : str, fields) -> None:
 
     return None
 
-# Attempts to create a temporary SDE file, which will be deleted after necessary data is obtained.
-def temp_SDE() -> bool:
-    '''This only executes when the expected SDE file's location cannot be found.
-    Therefore, a temporary SDE needs to be created in order to get DASID
-    information.
-    '''
-    try:
-        arcpy.management.CreateDatabaseConnection((sde_directory := arcpy.env.workspace[:arcpy.env.workspace.rfind('/')]),"naloe_zelmatitum","SQL_SERVER",instance="WSQ06627, 50000",account_authentication="OPERATING_SYSTEM_AUTH",database="DGMRgeo")
-        arcpy.env.workspace = f'{sde_directory}/naloe_zelmatitum.sde'
-        return True
-    except Exception:
-        arcpy.AddError("An error has transpired while attempting to establish and generate temporary SDE.")
-        import pyodbc
-        ms_odbc_driver = None
-        for driver in tuple(pyodbc.drivers()):
-            if driver.startswith('ODBC Driver'):
-                ms_odbc_driver = driver[:]
-                break
-        if ms_odbc_driver is None:
-            arcpy.AddMessage("\n\nNo ODBC Driver for SQL Server was found on your machine.")
-        else:
-            arcpy.AddMessage("\n\nYou have an unsupported/outdated version of Microsoft ODBC Driver for SQL Server installed on your machine.")
-        return False
-
 # Used to fill out _ID fields.
 def gems_id_writer(item_path : str, item_name : str) -> None:
     '''This function handles generating new _ID values for items in a feature
@@ -508,10 +484,8 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                 arcpy.AddMessage('Successfully established connection!')
                 naloe_zelmatitum = True
             except Exception:
-                arcpy.AddError("\n\nSomething went wrong when trying to connect via pre-existing SDE.\n\nGenerating temporary SDE...")
-                naloe_zelmatitum = temp_SDE()
+                arcpy.AddError("\n\nSomething went wrong when trying to connect via pre-existing SDE.\n\nSkipping this process.")
         else:
-            naloe_zelmatitum = temp_SDE()
 
         if naloe_zelmatitum:
 
@@ -566,22 +540,86 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         del code_directory ; del now_num_rows
         gc.collect()
 
-        if os.path.exists((temp_sde := f'{arcpy.env.workspace[:arcpy.env.workspace.rfind("/")]}/naloe_zelmatitum.sde')):
-            os.remove(temp_sde)
-
-        del temp_sde
-
-        if naloe_zelmatitum:
-            arcpy.AddMessage("\n\nProcess completed!\n\nSaving edits...")
-
         edit.end_session()
-
-        if naloe_zelmatitum:
-            arcpy.AddMessage('Edits successfully saved!\n\n')
 
         del naloe_zelmatitum
 
         gc.collect()
+
+    # placeholder = False
+    #
+    # # this is dependent on the wpgdict.py file.
+    # # This cannot distinguish multi-colored/patterned symbols.
+    # if placeholder == 'true':
+    #
+    #     current_dir = os.getcwd()
+    #
+    #     os.chdir(current_dir[:current_dir.rfind('/')])
+    #
+    #     failed_import = False
+    #     try:
+    #         import wpgdict
+    #     except ImportError:
+    #         failed_import = True
+    #         arcpy.AddError("Unable to find wpgdict module!")
+    #
+    #     os.chdir(current_dir)
+    #
+    #     del current_dir
+    #
+    #     if not failed_import:
+    #
+    #         arpx = arcpy.mp.ArcGISProject('CURRENT')
+    #         mapunits = dict()
+    #         dups = set()
+    #         for m in aprx.listMaps():
+    #             for lyr in m.listLayers():
+    #                 if 'MapUnitPolys' in lyr.name:
+    #                     sym = lyr.symbology
+    #                     for grp in sym.renderer.groups:
+    #                         for itm in grp.items:
+    #                             if not itm.label in (None,''):
+    #                                 vals = array('i',itm.symbol.color[(color_space := tuple(itm.symbol.color.keys())[0])])
+    #                                 vals = f'{vals[0]},{vals[1]},{vals[2]},{vals[3]}'
+    #                                 if itm.label in mapunits.keys():
+    #                                     if color_space.lower() in ('cmy','cmyk'):
+    #                                         if mapunits[itm.label].values != vals:
+    #                                             dups.add(itm.label)
+    #                                     elif color_space.lower() == 'hsv':
+    #                                         if mapunits[itm.label].values != wpgdict.hsv2cmy(vals):
+    #                                             dups.add(itm.label)
+    #                                     else:
+    #                                         pass
+    #                                 elif color_space.lower() in ('cmy','cmyk'):
+    #                                     mapunits[itm.label] = vals
+    #                                 elif color_space.lower() == 'hsv':
+    #                                     mapunits[itm.label] = wpgdict.hsv2cmy(f'{vals[0]},{vals[1]},{vals[2]}')
+    #                                 else:
+    #                                     pass
+    #                                 del vals ; del color_space
+    #                     del sym
+    #
+    #         if len(dups):
+    #             for item in tuple(dups):
+    #                 arcpy.AddError(f'{item} has more than one symbol designated for the same MapUnit between two polygon feature classes.')
+    #                 mapunits.pop(item)
+    #
+    #         del dups ; del aprx
+    #
+    #         cmyk_mapunits = {mapunit : mapunits[mapunit].split(',') for mapunit in mapunits.keys()}
+    #
+    #         del mapunits
+    #
+    #         cmyk_to_rgb = lambda c,m,y,k : (round(255 * (1-(c/100)) * (1-(k/100))),round(255 * (1-(m/100)) * (1-(k/100))),round(255 * (1-(y/100)) * (1-(k/100))))
+    #
+    #         for mapunit in cmyk_mapunits.keys():
+    #             rgb_vals = cmyk_to_rgb(cmyk_mapunits[mapunit][0],cmyk_mapunits[mapunit][1],cmyk_mapunits[mapunit][2],cmyk_mapunits[mapunit][3])
+    #             rgb_mapunits[mapunit] = f'{str(rgb_vals[0]).zfill(3)},{str(rgb_vals[1]).zfill(3)},{str(rgb_vals[2]).zfill(3)}'
+    #
+    #         if len(mapunits.keys()):
+    #             pass
+    #
+    #     del failed_import
 
 
     # Autofill _ID fields
