@@ -471,9 +471,6 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         for row in arcpy.da.SearchCursor('DataSources','DataSources_ID'):
             now_num_rows += 1
 
-        if os.path.exists(f'{arcpy.env.workspace[:arcpy.env.workspace.rfind("/")]}/naloe_zelmatitum.sde'):
-            os.remove(f'{arcpy.env.workspace[:arcpy.env.workspace.rfind("/")]}/naloe_zelmatitum.sde')
-
         code_directory = arcpy.env.workspace[:]
 
         if os.path.exists('Z:/PROJECTS/MAPPING/GuidanceDocs/GeMS/gems-tools-pro-GMR/SDE_connection.sde'):
@@ -485,7 +482,6 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                 naloe_zelmatitum = True
             except Exception:
                 arcpy.AddError("\n\nSomething went wrong when trying to connect via pre-existing SDE.\n\nSkipping this process.")
-        else:
 
         if naloe_zelmatitum:
 
