@@ -2,7 +2,6 @@ from string import punctuation,ascii_letters,digits
 from math import log10,floor
 from array import array
 from decimal import Decimal,getcontext
-from color_code_dict import color_dict
 
 getcontext().prec = 6
 

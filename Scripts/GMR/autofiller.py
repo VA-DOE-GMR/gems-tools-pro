@@ -1,14 +1,12 @@
-import arcpy
-import gc
-from misc_arcpy_ops import default_env_parameters
+import arcpy,gc,os,sys
+from misc_arcpy_ops import default_env_parameters,explicit_typo_fix
 from misc_ops import fixFieldItemString,ref_info,to_tuple
-import sys
 from array import array
 from re import sub as re_sub
-import os
+from fundamentals import hsv_into_rgb,hsl_into_rgb,lab_into_rgb,cmy_into_rgb,rgb_into_cmy,cmy_into_wpg
 
 gdb_path = sys.argv[1]
-enable_process = tuple([sys.argv[n] for n in range(2,7)])
+enable_process = tuple([sys.argv[n] for n in range(2,8)])
 
 # used to make specific fields uppercase.
 def upperFields(item_path : str, fields) -> None:
@@ -58,30 +56,6 @@ def gems_id_writer(item_path : str, item_name : str) -> None:
             if (new_str := f'{prefix}{str(counter).zfill(z_num)}') != row[0]:
                 row[0] = new_str
                 cursor.updateRow(row)
-
-    return None
-
-def explicit_typo_fix(item_path : str) -> None:
-    '''This fixes all explicit typos present in all String/Text fields of
-    feature classes and tables, excluding ones that should not be touched.
-    '''
-
-    excluded_fields = frozenset(('created_user','last_edited_user','GeoMaterial','Notes'))
-
-    if len((fields := tuple([field.name for field in tuple(arcpy.ListFields(item_path,field_type='String')) if not field.name in excluded_fields]))):
-
-        field_range = range(len(fields))
-
-        with arcpy.da.UpdateCursor(item_path,fields) as cursor:
-            for row in cursor:
-                update_row = False
-                for n in field_range:
-                    if not row[n] is None:
-                        if (new_str := fixFieldItemString(row[n])) != row[n]:
-                            row[n] = new_str
-                            update_row = True
-                if update_row:
-                    cursor.updateRow(row)
 
     return None
 
@@ -194,14 +168,169 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
     edit.end_session()
 
-    # Autofill Label and Symbol fields of polygon feature classes
+    # Multi-Color/-Patterned MapUnits are skipped, excluding water and alluvium,
+    # which have an explicit symbol used for them.
     if enable_process[0] == 'true':
 
-        # Fillout Symbol and Label fields for polygon feature classes in
-        # geodatabase using corresponding information from DescriptionOfMapUnits
-        # table.
+        aprx = arcpy.mp.ArcGISProject('CURRENT')
+        rgb_mapunits = dict()
+        cmy_mapunits = dict()
+        complex_mapunits = dict()
+        dups = set()
+        for m in aprx.listMaps():
+            for lyr in m.listLayers():
+                if 'MapUnitPolys' in lyr.name:
+                    sym = lyr.symbology
+                    for grp in sym.renderer.groups:
+                        for itm in grp.items:
+                            if not (unit_name := itm.label) in (None,''):
+                                try:
+                                    color_space = tuple(itm.symbol.color.keys())
+                                except Exception:
+                                    continue
+                                if len(color_space) == 1:
+                                    color_space = color_space[0]
+                                    if not unit_name in rgb_mapunits.keys():
+                                        if color_space == 'RGB':
+                                            rgb_vals = tuple(itm.symbol.color[color_space])
+                                            rgb_mapunits[unit_name] = rgb_vals[:]
+                                            cmy_mapunits[unit_name] = rgb_into_cmy(rgb_vals[0],rgb_vals[1],rgb_vals[2])
+                                            del rgb_vals
+                                        elif color_space == 'HSV':
+                                            hsv_vals = tuple(itm.symbol.color[color_space])
+                                            # This fixes a weird glitch related to specifically running in ArcGIS Pro. For example,
+                                            # hsv_into_rgb is supposed to return a tuple of 3 integers. Instead, it returns of 3
+                                            # floats and seems to ignore the round() function. This does not happen when running this
+                                            # function outside ArcGIS Pro. map(round,hsv_into_rgb()) fixes this issue.
+                                            rgb_mapunits[unit_name] = tuple(map(round,hsv_into_rgb(hsv_vals[0],hsv_vals[1],hsv_vals[2])))
+                                            cmy_mapunits[unit_name] = rgb_into_cmy(rgb_mapunits[unit_name][0],rgb_mapunits[unit_name][1],rgb_mapunits[unit_name][2])
+                                            del hsv_vals
+                                        elif color_space == 'HSL':
+                                            hsl_vals = tuple(itm.symbol.color[color_space])
+                                            rgb_mapunits[unit_name] = tuple(map(round,hsl_into_rgb(hsl_vals[0],hsl_vals[1],hsl_vals[2])))
+                                            cmy_mapunits[unit_name] = rgb_into_cmy(rgb_mapunits[unit_name][0],rgb_mapunits[unit_name][1],rgb_mapunits[unit_name][2])
+                                            del hsl_vals
+                                        elif color_space == 'CMYK':
+                                            cmy_vals = tuple(itm.symbol.color[color_space])
+                                            rgb_mapunits[unit_name] = tuple(map(round,cmy_into_rgb(cmy_vals[0],cmy_vals[1],cmy_vals[2])))
+                                            cmy_mapunits[unit_name] = cmy_vals[:]
+                                            del cmy_vals
+                                        elif color_space == 'Grayscale':
+                                            rgb_mapunits[unit_name] = ((gs_num := tuple(itm.symbol.color[color_space])[0]),gs_num,gs_num)
+                                            cmy_mapunits[unit_name] = tuple(map(round,cmy_into_rgb(gs_num,gs_num,gs_num)))
+                                            del gs_num
+                                        else:
+                                            lab_vals = tuple(itm.symbol.color[color_space])
+                                            rgb_mapunits[unit_name] = tuple(map(round,lab_into_rgb(lab_vals[0],lab_vals[1],lab_vals[2])))
+                                            cmy_mapunits[unit_name] = rgb_into_cmy(rgb_mapunits[unit_name][0],rgb_mapunits[unit_name][1],rgb_mapunits[unit_name][2])
+                                            del lab_vals
+                                    elif color_space == 'RGB':
+                                        rgb_vals = tuple(itm.symbol.color[color_space])
+                                        if rgb_vals[0] != rgb_mapunits[unit_name][0] or rgb_vals[1] != rgb_mapunits[unit_name][1] or rgb_vals[2] != rgb_mapunits[unit_name][2]:
+                                            dups.add(unit_name)
+                                        del rgb_vals
+                                    elif color_space == 'CMYK':
+                                        cmy_vals = tuple(itm.symbol.color[color_space])
+                                        if cmy_vals[0] != cmy_mapunits[unit_name][0] or cmy_vals[1] != cmy_mapunits[unit_name][1] or cmy_vals[2] != cmy_mapunits[unit_name][2]:
+                                            dups.add(unit_name)
+                                        del cmy_vals
+                                    elif color_space == 'HSL':
+                                        hsl_vals = tuple(itm.symbol.color[color_space])
+                                        rgb_vals = tuple(map(round,hsl_into_rgb(hsl_vals[0],hsl_vals[1],hsl_vals[2])))
+                                        if rgb_vals[0] != rgb_mapunits[unit_name][0] or rgb_vals[1] != rgb_mapunits[unit_name][1] or rgb_vals[2] != rgb_mapunits[unit_name][2]:
+                                            dups.add(unit_name)
+                                        del hsl_vals ; del rgb_vals
+                                        gc.collect()
+                                    elif color_space == 'HSV':
+                                        hsv_vals = tuple(itm.symbol.color[color_space])
+                                        rgb_vals = tuple(map(round,hsv_into_rgb(hsv_vals[0],hsv_vals[1],hsv_vals[2])))
+                                        if rgb_vals[0] != rgb_mapunits[unit_name][0] or rgb_vals[1] != rgb_mapunits[unit_name][1] or rgb_vals[2] != rgb_mapunits[unit_name][2]:
+                                            dups.add(unit_name)
+                                        del hsv_vals ; del rgb_vals
+                                        gc.collect()
+                                    elif color_space == 'Grayscale':
+                                        if (gs_num := tuple(itm.symbol.color[color_space])[0]) != rgb_mapunits[unit_name][0] or gs_num != rgb_mapunits[unit_name][1] or gs_num != rgb_mapunits[unit_name][2]:
+                                            dups.add(unit_name)
+                                        del gs_num
+                                    else:
+                                        lab_vals = tuple(itm.symbol.color[color_space])
+                                        rgb_vals = tuple(map(round,lab_into_rgb(lab_vals[0],lab_vals[1],lab_vals[2])))
+                                        if rgb_vals[0] != rgb_mapunits[unit_name][0] or rgb_vals[1] != rgb_mapunits[unit_name][1] or rgb_vals[2] != rgb_mapunits[unit_name][2]:
+                                            dups.add(unit_name)
+                                        del lab_vals ; del rgb_vals
+                                        gc.collect()
+                            del unit_name
+                    del sym
+                elif 'MapUnitOverlayPolys' in lyr.name:
+                    sym = lyr.symbology
+                    for grp in sym.renderer.groups:
+                        if itm in grp.items:
+                            if (unit_name := itm.label) == 'Qal':
+                                complex_mapunits[unit_name] = 'al'
+                            elif unit_name == 'water':
+                                complex_mapunits[unit_name] = 'w'
 
-        # This is to prevent Error #160250 randomly from occurring.
+        try:
+            del color_space
+        except NameError:
+            pass
+
+        if len(dups):
+            for item in tuple(dups):
+                arcpy.AddError(f'{item} has more than one color symbol designated for the same MapUnit between two polygon feature classes.')
+                rgb_mapunits.pop(item)
+                cmy_mapunits.pop(item)
+
+        del dups ; del aprx
+
+        if len(((units := tuple(rgb_mapunits.keys())))):
+
+            symbol_mapunits = dict()
+
+            other_units = tuple(complex_mapunits.keys())
+
+            for unit in units:
+                symbol_mapunits[unit] = cmy_into_wpg(cmy_mapunits[unit])
+
+            edit = GeMS_Editor()
+
+            for unit in units:
+                rgb_mapunits[unit] = f'{str(rgb_mapunits[unit][0]).zfill(3)},{str(rgb_mapunits[unit][1]).zfill(3)},{str(rgb_mapunits[unit][2]).zfill(3)}'
+            with arcpy.da.UpdateCursor('DescriptionOfMapUnits',('MapUnit','Symbol','AreaFillRGB')) as cursor:
+                for row in cursor:
+                    update_row = False
+                    if not row[0] is None:
+                        if row[0] in units:
+                            if (new_str := symbol_mapunits[row[0]]) != row[1]:
+                                update_row = True
+                                row[1] = new_str[:]
+                            if (new_str := rgb_mapunits[row[0]]) != row[2]:
+                                update_row = True
+                                row[2] = new_str[:]
+                            del new_str
+                        if row[0] in other_units:
+                            if row[1] != complex_mapunits[row[0]]:
+                                update_row = True
+                                row[1] = complex_mapunits[row[0]]
+                            if row[2] != None:
+                                update_row = True
+                                row[2] = None
+                        if update_row:
+                            cursor.updateRow(row)
+                    del update_row
+
+            del symbol_mapunits ; del other_units
+
+            edit.end_session()
+
+        del rgb_mapunits ; del cmy_mapunits ; del complex_mapunits
+        gc.collect()
+
+    # Fillout Symbol and Label fields for polygon feature classes in
+    # geodatabase using corresponding information from DescriptionOfMapUnits
+    # table.
+    if enable_process[1] == 'true':
+
         edit = GeMS_Editor()
 
         arcpy.AddMessage("Obtaining Label and Symbol information from DescriptionOfMapUnits table...")
@@ -236,7 +365,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         arcpy.AddMessage("Edits saved!\n\n")
 
     # Autofill MapUnit fields in point feature classes
-    if enable_process[1] == 'true':
+    if enable_process[2] == 'true':
 
         arcpy.AddMessage("Filling out MapUnit field of point feature classes in geodatabase based upon location relative to polygons in MapUnitPolys...\n")
 
@@ -304,7 +433,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         arcpy.AddMessage("Edits saved!\n\n")
 
     # Alphabetize Glossary and Add missing terms
-    if enable_process[2] == 'true':
+    if enable_process[3] == 'true':
 
         arcpy.AddMessage("Alphabetizing and adding missing terms to Glossary...")
 
@@ -414,7 +543,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         arcpy.AddMessage("Edits successfully saved!\n\n")
 
     # Autopopulate DataSources table
-    if enable_process[3] == 'true':
+    if enable_process[4] == 'true':
 
         arcpy.AddMessage('Filling out and populating DataSources table...')
 
@@ -542,86 +671,9 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
         gc.collect()
 
-    # placeholder = False
-    #
-    # # this is dependent on the wpgdict.py file.
-    # # This cannot distinguish multi-colored/patterned symbols.
-    # if placeholder == 'true':
-    #
-    #     current_dir = os.getcwd()
-    #
-    #     os.chdir(current_dir[:current_dir.rfind('/')])
-    #
-    #     failed_import = False
-    #     try:
-    #         import wpgdict
-    #     except ImportError:
-    #         failed_import = True
-    #         arcpy.AddError("Unable to find wpgdict module!")
-    #
-    #     os.chdir(current_dir)
-    #
-    #     del current_dir
-    #
-    #     if not failed_import:
-    #
-    #         arpx = arcpy.mp.ArcGISProject('CURRENT')
-    #         mapunits = dict()
-    #         dups = set()
-    #         for m in aprx.listMaps():
-    #             for lyr in m.listLayers():
-    #                 if 'MapUnitPolys' in lyr.name:
-    #                     sym = lyr.symbology
-    #                     for grp in sym.renderer.groups:
-    #                         for itm in grp.items:
-    #                             if not itm.label in (None,''):
-    #                                 vals = array('i',itm.symbol.color[(color_space := tuple(itm.symbol.color.keys())[0])])
-    #                                 vals = f'{vals[0]},{vals[1]},{vals[2]},{vals[3]}'
-    #                                 if itm.label in mapunits.keys():
-    #                                     if color_space.lower() in ('cmy','cmyk'):
-    #                                         if mapunits[itm.label].values != vals:
-    #                                             dups.add(itm.label)
-    #                                     elif color_space.lower() == 'hsv':
-    #                                         if mapunits[itm.label].values != wpgdict.hsv2cmy(vals):
-    #                                             dups.add(itm.label)
-    #                                     else:
-    #                                         pass
-    #                                 elif color_space.lower() in ('cmy','cmyk'):
-    #                                     mapunits[itm.label] = vals
-    #                                 elif color_space.lower() == 'hsv':
-    #                                     mapunits[itm.label] = wpgdict.hsv2cmy(f'{vals[0]},{vals[1]},{vals[2]}')
-    #                                 else:
-    #                                     pass
-    #                                 del vals ; del color_space
-    #                     del sym
-    #
-    #         if len(dups):
-    #             for item in tuple(dups):
-    #                 arcpy.AddError(f'{item} has more than one symbol designated for the same MapUnit between two polygon feature classes.')
-    #                 mapunits.pop(item)
-    #
-    #         del dups ; del aprx
-    #
-    #         cmyk_mapunits = {mapunit : mapunits[mapunit].split(',') for mapunit in mapunits.keys()}
-    #
-    #         del mapunits
-    #
-    #         cmyk_to_rgb = lambda c,m,y,k : (round(255 * (1-(c/100)) * (1-(k/100))),round(255 * (1-(m/100)) * (1-(k/100))),round(255 * (1-(y/100)) * (1-(k/100))))
-    #
-    #         for mapunit in cmyk_mapunits.keys():
-    #             rgb_vals = cmyk_to_rgb(cmyk_mapunits[mapunit][0],cmyk_mapunits[mapunit][1],cmyk_mapunits[mapunit][2],cmyk_mapunits[mapunit][3])
-    #             rgb_mapunits[mapunit] = f'{str(rgb_vals[0]).zfill(3)},{str(rgb_vals[1]).zfill(3)},{str(rgb_vals[2]).zfill(3)}'
-    #
-    #         if len(mapunits.keys()):
-    #             pass
-    #
-    #     del failed_import
-
-
     # Autofill _ID fields
-    if enable_process[4] == 'true':
-
-        # This should always be the last thing done if enabled and is enabled by default.
+    # This should always be the last thing done if enabled and is enabled by default.
+    if enable_process[5] == 'true':
 
         arcpy.AddMessage("Filling out _ID fields, excluding DataSources table...")
 
