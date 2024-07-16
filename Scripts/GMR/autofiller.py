@@ -8,24 +8,6 @@ from fundamentals import hsv_into_rgb,hsl_into_rgb,lab_into_rgb,cmy_into_rgb,rgb
 gdb_path = sys.argv[1]
 enable_process = tuple([sys.argv[n] for n in range(2,8)])
 
-# used to make specific fields uppercase.
-def upperFields(item_path : str, fields) -> None:
-
-    field_range = range(len(fields))
-
-    with arcpy.da.UpdateCursor(item_path,fields) as cursor:
-        for row in cursor:
-            update_row = False
-            for n in field_range:
-                if not row[n] is None:
-                    if (new_str := row[n].upper()) != row[n]:
-                        row[n] = new_str
-                        update_row = True
-            if update_row:
-                cursor.updateRow(row)
-
-    return None
-
 # Used to fill out _ID fields.
 def gems_id_writer(item_path : str, item_name : str) -> None:
     '''This function handles generating new _ID values for items in a feature
@@ -105,13 +87,13 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
             except Exception:
                 pass
 
-    edit = GeMS_Editor()
-
     # The following done as they are required to be fixed for the best output as
     # well as applying fixes and changes that will be required to be done
     # regardless.
 
     # Removing explicit typos.
+
+    edit = GeMS_Editor()
 
     arcpy.AddMessage("Fixing explicit typos in feature classes and tables as well as invalid capitalization...")
 
@@ -119,51 +101,6 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
     map(explicit_typo_fix,tuple([f'{dataset}/{fc}' for dataset in datasets for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset))]))
     # tables
     map(explicit_typo_fix,('Glossary','DescriptionOfMapUnits'))
-    gc.collect()
-
-    # change these to uppercase
-    # DataSourceID,DescriptionSourceID,DefinitionSourceID,LocationSourceID,OrientationSourceID
-
-    valid_fields = frozenset(('DataSourceID','LocationSourceID','OrientationSourceID'))
-
-    for dataset in datasets:
-        for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset)):
-            feature_item = f'{dataset}/{fc}'
-            if len((id_fields := tuple([field.name for field in tuple(arcpy.ListFields(feature_item,field_type='String')) if field.name in valid_fields or field.name.endswith('_ID')]))):
-                upperFields(feature_item,id_fields)
-
-    del id_fields ; del feature_item
-    gc.collect()
-
-    upperFields('Glossary',('DefinitionSourceID','Glossary_ID'))
-    upperFields('DescriptionOfMapUnits',('DescriptionSourceID','DescriptionOfMapUnits_ID'))
-    upperFields('DataSources',('DataSources_ID',))
-
-    # change these to lowercase:
-    # IsConcealed,IdentityConfidence,ExistenceConfidence
-
-    valid_fields = frozenset(('IsConcealed','IdentityConfidence','ExistenceConfidence'))
-
-    for dataset in datasets:
-        for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset)):
-            feature_item = f'{dataset}/{fc}'
-            if len((fields := tuple([field.name for field in tuple(arcpy.ListFields(feature_item,field_type='String')) if field.name in valid_fields]))):
-                field_range = range(len(fields))
-                with arcpy.da.UpdateCursor(feature_item,fields) as cursor:
-                    for row in cursor:
-                        update_row = False
-                        for n in field_range:
-                            if not row[n] is None:
-                                if (new_str := row[n].lower()) != row[n]:
-                                    row[n] = new_str
-                                    update_row = True
-                                del new_str
-                        if update_row:
-                            cursor.updateRow(row)
-                        del update_row
-                del field_range
-
-    del fields ; del valid_fields ; del feature_item
     gc.collect()
 
     edit.end_session()
@@ -618,11 +555,25 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
             temp_table = arcpy.management.MakeTableView("DGMRgeo.DBO.DataSources",'temp_table')
 
-            source_dict = {row[3] : (row[0],row[1],row[2]) for row in arcpy.da.SearchCursor(temp_table,('Source','Notes','URL','DataSources_ID')) if not None in (row[0],row[3])}
+            source_dict = {row[3] : (row[0],row[1],row[2]) for row in arcpy.da.SearchCursor('temp_table',('Source','Notes','URL','DataSources_ID')) if not None in (row[0],row[3])}
             master_dasids = frozenset(source_dict.keys())
             valid_dasids = tuple(sorted([item for item in found_dasids if item in master_dasids],key=str))
 
-            del temp_table ; del master_dasids ; del found_dasids
+            arcpy.env.workspace = code_directory[:]
+
+            for field in arcpy.ListFields('DataSources',field_type='String'):
+                if field.name == 'Source':
+                    set_max_chars = field.length
+                    break
+
+            if set_max_chars < (required_max_chars := len(max([source_dict[valid_dasid][0] for valid_dasid in valid_dasids],key=len))):
+                edit.end_session()
+                arcpy.management.AlterField('DataSources','Source',field_length=required_max_chars)
+                edit = GeMS_Editor()
+
+            arcpy.env.workspace = 'Z:/PROJECTS/MAPPING/GuidanceDocs/GeMS/gems-tools-pro-GMR/SDE_connection.sde'
+
+            del temp_table ; del master_dasids ; del found_dasids ; del set_max_chars ; del required_max_chars
             gc.collect()
 
             arcpy.env.workspace = code_directory[:]

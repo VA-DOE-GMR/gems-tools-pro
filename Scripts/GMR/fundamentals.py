@@ -1,7 +1,7 @@
 import colorsys
 from colormath.color_objects import LabColor,sRGBColor
 from colormath.color_conversions import convert_color
-from decimal import Decimal,getcontext
+from decimal import Decimal,localcontext
 from color_code_dict import color_dict
 
 ## COLOR CONVERSIONS
@@ -36,66 +36,45 @@ def rgb_into_cmy(r : int, g : int, b : int) -> tuple:
 
 def wpg_val(num) -> str:
 
-    initial_context = getcontext().prec
-    getcontext().prec = 3
-    getcontext().prec = initial_context
-
-    num = Decimal(str(num))
-
-    if num <= 8:
-        if num < Decimal(8) - num:
-            getcontext().prec = initial_context
-            return '0'
-        getcontext().prec = initial_context
-        return 'A'
-    elif num <= 13:
-        if num < Decimal(13) - num:
-            getcontext().prec = initial_context
+    with localcontext() as ctx:
+        ctx.prec = 3
+        num = Decimal(str(num))
+        if num <= 8:
+            if num < Decimal(8) - num:
+                return '0'
             return 'A'
-        getcontext().prec = initial_context
-        return '1'
-    elif num <= 20:
-        if num < Decimal(20) - num:
-            getcontext().prec = initial_context
+        elif num <= 13:
+            if num < Decimal(13) - num:
+                return 'A'
             return '1'
-        getcontext().prec = initial_context
-        return '2'
-    elif num <= 30:
-        if num < Decimal(30) - num:
-            getcontext().prec = initial_context
+        elif num <= 20:
+            if num < Decimal(20) - num:
+                return '1'
             return '2'
-        getcontext().prec = initial_context
-        return '3'
-    elif num <= 40:
-        if num < Decimal(40) - num:
-            getcontext().prec = initial_context
+        elif num <= 30:
+            if num < Decimal(30) - num:
+                return '2'
             return '3'
-        getcontext().prec = initial_context
-        return '4'
-    elif num <= 50:
-        if num < Decimal(50) - num:
-            getcontext().prec = initial_context
+        elif num <= 40:
+            if num < Decimal(40) - num:
+                return '3'
             return '4'
-        getcontext().prec = initial_context
-        return '5'
-    elif num <= 60:
-        if num < Decimal(60) - num:
-            getcontext().prec = initial_context
+        elif num <= 50:
+            if num < Decimal(50) - num:
+                return '4'
             return '5'
-        getcontext().prec = initial_context
-        return '6'
-    elif num <= 70:
-        if num < Decimal(70) - num:
-            getcontext().prec = initial_context
+        elif num <= 60:
+            if num < Decimal(60) - num:
+                return '5'
             return '6'
-        getcontext().prec = initial_context
-        return '7'
-    else:
-        if num < Decimal(100) - num:
-            getcontext().prec = initial_context
+        elif num <= 70:
+            if num < Decimal(70) - num:
+                return '6'
             return '7'
-        getcontext().prec = initial_context
-        return 'X'
+        else:
+            if num < Decimal(100) - num:
+                return '7'
+            return 'X'
 
 def cmy_into_wpg(cmy : tuple) -> str:
 
