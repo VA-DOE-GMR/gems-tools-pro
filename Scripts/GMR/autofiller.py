@@ -611,7 +611,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
             arcpy.env.workspace = code_directory[:]
 
-            arcpy.AddMesssage("Unable to connect via SDEs! Process has been ended prematurely.\n\n")
+            arcpy.AddMessage("Unable to connect via SDEs! Process has been ended prematurely.\n\n")
 
         del code_directory ; del now_num_rows
         gc.collect()
