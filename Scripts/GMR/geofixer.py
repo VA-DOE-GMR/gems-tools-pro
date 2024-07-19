@@ -8,25 +8,6 @@ gdb_path = sys.argv[1]
 # Example: range(2,3) means there is 1 toggable process and range(2,5) means that there are 3 togglable processes.
 enable_process = tuple([sys.argv[n] for n in range(2,3)])
 
-# used to make specific fields uppercase.
-def upperFields(item_path : str, fields) -> None:
-
-    field_range = range(len(fields))
-
-    with arcpy.da.UpdateCursor(item_path,fields) as cursor:
-        for row in cursor:
-            update_row = False
-            for n in field_range:
-                if not row[n] is None:
-                    if (new_str := row[n].upper()) != row[n]:
-                        row[n] = new_str
-                        update_row = True
-            if update_row:
-                cursor.updateRow(row)
-
-    return None
-
-
 # All processes are designed to run independently of each other.
 def geofill_GeMS(gdb_path : str, enable_process : tuple) -> None:
     """
@@ -76,54 +57,7 @@ def geofill_GeMS(gdb_path : str, enable_process : tuple) -> None:
     map(explicit_typo_fix,('Glossary','DescriptionOfMapUnits'))
     gc.collect()
 
-    # change these to uppercase
-    # DataSourceID,DescriptionSourceID,DefinitionSourceID,LocationSourceID,OrientationSourceID
-
-    valid_fields = frozenset(('DataSourceID','LocationSourceID','OrientationSourceID'))
-
-    for dataset in datasets:
-        for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset)):
-            feature_item = f'{dataset}/{fc}'
-            if len((id_fields := tuple([field.name for field in tuple(arcpy.ListFields(feature_item,field_type='String')) if field.name in valid_fields or field.name.endswith('_ID')]))):
-                upperFields(feature_item,id_fields)
-
-    del id_fields ; del feature_item
-    gc.collect()
-
-    upperFields('Glossary',('DefinitionSourceID','Glossary_ID'))
-    upperFields('DescriptionOfMapUnits',('DescriptionSourceID','DescriptionOfMapUnits_ID'))
-    upperFields('DataSources',('DataSources_ID',))
-
-    # change these to lowercase:
-    # IsConcealed,IdentityConfidence,ExistenceConfidence
-
-    valid_fields = frozenset(('IsConcealed','IdentityConfidence','ExistenceConfidence'))
-
-    for dataset in datasets:
-        for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset)):
-            feature_item = f'{dataset}/{fc}'
-            if len((fields := tuple([field.name for field in tuple(arcpy.ListFields(feature_item,field_type='String')) if field.name in valid_fields]))):
-                field_range = range(len(fields))
-                with arcpy.da.UpdateCursor(feature_item,fields) as cursor:
-                    for row in cursor:
-                        update_row = False
-                        for n in field_range:
-                            if not row[n] is None:
-                                if (new_str := row[n].lower()) != row[n]:
-                                    row[n] = new_str
-                                    update_row = True
-                                del new_str
-                        if update_row:
-                            cursor.updateRow(row)
-                        del update_row
-                del field_range
-
-    del fields ; del valid_fields ; del feature_item
-    gc.collect()
-
     edit.end_session()
-
-    datasets = tuple(arcpy.ListDatasets())
 
     if enable_process[0] == 'true':
 
