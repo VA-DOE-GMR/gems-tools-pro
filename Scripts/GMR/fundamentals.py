@@ -39,42 +39,43 @@ def wpg_val(num) -> str:
     with localcontext() as ctx:
         ctx.prec = 3
         num = Decimal(str(num))
-        if num <= 8:
-            if num < Decimal(8) - num:
-                return '0'
-            return 'A'
-        elif num <= 13:
-            if num < Decimal(13) - num:
+        if num <= Decimal(8):
+            if Decimal(8) - num >= num:
                 return 'A'
-            return '1'
-        elif num <= 20:
-            if num < Decimal(20) - num:
+            return '0'
+        elif num <= Decimal(13):
+            if num - Decimal(8) >= Decimal(13) - num:
                 return '1'
-            return '2'
-        elif num <= 30:
-            if num < Decimal(30) - num:
+            return 'A'
+        elif num <= Decimal(20):
+            if num - Decimal(13) >= Decimal(20) - num:
                 return '2'
-            return '3'
-        elif num <= 40:
-            if num < Decimal(40) - num:
+            return '1'
+        elif num <= Decimal(30):
+            if num - Decimal(20) >= Decimal(30) - num:
                 return '3'
-            return '4'
-        elif num <= 50:
-            if num < Decimal(50) - num:
+            return '2'
+        elif num <= Decimal(40):
+            if num - Decimal(30) >= Decimal(40) - num:
                 return '4'
-            return '5'
-        elif num <= 60:
-            if num < Decimal(60) - num:
+            return '3'
+        elif num <= Decimal(50):
+            if num - Decimal(40) >= Decimal(50) - num:
                 return '5'
-            return '6'
-        elif num <= 70:
-            if num < Decimal(70) - num:
+            return '4'
+        elif num <= Decimal(60):
+            if num - Decimal(50) >= Decimal(60) - num:
                 return '6'
-            return '7'
-        else:
-            if num < Decimal(100) - num:
+            return '5'
+        elif num <= Decimal(70):
+            if num - Decimal(60) >= Decimal(70) - num:
                 return '7'
+            return '6'
+        elif num - Decimal(70) >= Decimal(100) - num:
             return 'X'
+        else:
+            return '7'
+
 
 def cmy_into_wpg(cmy : tuple) -> str:
 

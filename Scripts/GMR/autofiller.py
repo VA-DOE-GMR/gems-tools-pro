@@ -1,7 +1,6 @@
 import arcpy,gc,os,sys
 from misc_arcpy_ops import default_env_parameters,explicit_typo_fix
 from misc_ops import fixFieldItemString,ref_info,to_tuple
-from array import array
 from re import sub as re_sub
 from fundamentals import hsv_into_rgb,hsl_into_rgb,lab_into_rgb,cmy_into_rgb,rgb_into_cmy,cmy_into_wpg
 
@@ -117,19 +116,19 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
             for row in cursor:
                 update_row = False
                 if row[0] == 'Qal':
-                    if row[1] != 'al':
+                    if row[1] != '180':
                         update_row = True
-                        row[1] = 'al'
-                    if row[2] != '180':
+                        row[1] = '180'
+                    if not row[2] is None:
                         update_row = True
-                        row[2] = '180'
+                        row[2] = None
                 elif row[0] == 'water':
-                    if row[1] != 'w':
+                    if not row[1] is None:
                         update_row = True
-                        row[1] = 'w'
-                    if row[2] != '200':
+                        row[1] = None
+                    if not row[2] is None:
                         update_row = True
-                        row[2] = '200'
+                        row[2] = None
                 if update_row:
                     cursor.updateRow(row)
                 del update_row
@@ -358,7 +357,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                         selected_polys = arcpy.management.SelectLayerByAttribute('temp_poly_lyr','NEW_SELECTION',f"MapUnit = '{mapunit}'")
                         selected_pnts,redundant,count = arcpy.management.SelectLayerByLocation('temp_pnt_lyr','INTERSECT',selected_polys,'','NEW_SELECTION')
                         del redundant
-                        if count:
+                        if int(count):
                             for row in arcpy.da.SearchCursor(selected_pnts,fields):
                                 matched[row[0]] = mapunit
                         del count ; del selected_polys ; del selected_pnts
@@ -412,7 +411,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                             selected_polys = arcpy.management.SelectLayerByAttribute('temp_poly_lyr','NEW_SELECTION',f"MapUnit = '{mapunit}'")
                             selected_pnts,redundant,count = arcpy.management.SelectLayerByLocation('temp_pnt_lyr','INTERSECT',selected_polys,'','NEW_SELECTION')
                             del redundant
-                            if count:
+                            if int(count):
                                 for row in arcpy.da.SearchCursor(selected_pnts,fields):
                                     matched[row[0]] = mapunit
                             del count ; del selected_polys ; del selected_pnts
