@@ -20,7 +20,7 @@ The main USGS toolbox is at [DOI/gems-tools-pro](https://github.com/DOI-USGS/gem
 
 ## Acknowledgements
 
-GeMS Tools was originally written by in Python 2.7 by Ralph Haugerud, Evan Thoms, and others and ported to Python 3 by Evan Thoms. Tools in the GMR section were written by Adam Link and Jennie Latane.
+GeMS Tools was originally written by in Python 2.7 by Ralph Haugerud, Evan Thoms, and others and ported to Python 3 by Evan Thoms. Tools in the GMR section were written by Adam J. Link and Jennie Latane.
 
 
 ## [License](https://github.com/DOI-USGS/gems-tools-pro/blob/master/LICENSE.md)
