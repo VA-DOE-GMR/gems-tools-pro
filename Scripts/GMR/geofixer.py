@@ -1,12 +1,13 @@
-import arcpy,os,geo_cal,gc,sys
+import arcpy,os,geo_cal,sys
 from misc_arcpy_ops import default_env_parameters,explicit_typo_fix
 from misc_ops import fixFieldItemString,ref_info,to_tuple
 from array import array
-from geo_cal import Coord_Pnt,doIntersect
+from geo_cal import Coord_Pnt,doIntersect,Line_Info,getInterceptPnt
 
 gdb_path = sys.argv[1]
 # Example: range(2,3) means there is 1 toggable process and range(2,5) means that there are 3 togglable processes.
-enable_process = tuple([sys.argv[n] for n in range(2,3)])
+enable_process = tuple([sys.argv[n] for n in range(2,4)])
+
 
 # All processes are designed to run independently of each other.
 def geofill_GeMS(gdb_path : str, enable_process : tuple) -> None:
@@ -55,15 +56,12 @@ def geofill_GeMS(gdb_path : str, enable_process : tuple) -> None:
     map(explicit_typo_fix,tuple([f'{dataset}/{fc}' for dataset in datasets for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset))]))
     # tables
     map(explicit_typo_fix,('Glossary','DescriptionOfMapUnits'))
-    gc.collect()
 
     edit.end_session()
 
     if enable_process[0] == 'true':
 
         arcpy.AddMessage('Merging matching polygons...')
-
-        edit = GeMS_Editor()
 
         # Explicit and constant range objects.
         range_4 = range(4)
@@ -178,7 +176,6 @@ def geofill_GeMS(gdb_path : str, enable_process : tuple) -> None:
                                 if not sub_iteration_complete:
                                     selected_keys = array('i',selected_info.keys())
                             del checked ; del sub_iteration_complete
-                            gc.collect()
                             # Create a concatenated string of differing Notes or
                             # value to None if they are all blank.
                             notes_items = set()
@@ -217,9 +214,8 @@ def geofill_GeMS(gdb_path : str, enable_process : tuple) -> None:
                         ignore.add(row[0])
                 if max_notes_length < new_length:
                     # Increase the maximum number of characters allowed for Notes.
-                    edit.end_session()
                     arcpy.management.AlterField(feature_item,'Notes',field_length=new_length)
-                    edit = GeMS_Editor()
+                edit = GeMS_Editor()
                 for n in range(len((polygon_mergers := tuple(polygon_mergers)))):
                     counter = 0
                     with arcpy.da.UpdateCursor(feature_item,('SHAPE@','IdentityConfidence','Label','Symbol','DataSourceID','Notes'),polygon_mergers[n][1]) as cursor:
@@ -239,71 +235,20 @@ def geofill_GeMS(gdb_path : str, enable_process : tuple) -> None:
                                 # Delete the rest of the matching polygons.
                                 cursor.deleteRow()
                 del oid_name ; del new_length ; del max_notes_length ; del fields ; del required_fields ; del feature_item ; del ignore
-                gc.collect()
-        edit.end_session()
+                edit.end_session()
 
-    placeholder = False
+        del range_4 ; del range_7
 
-    # Correct self-intersecting polylines
-    if placeholder == 'true':
+    if enable_process[1] == 'true':
+        print("Breaking apart multipart polylines...")
+        try:
+            pass
+        except Exception:
+            edit = GeMS_Editor()
 
-        excluded_fields = frozenset(('created_user','created_date','last_edited_user','last_edited_date','Shape','Shape_Length'))
+            edit.end_session()
 
-        for dataset in datasets:
-            for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset,feature_type='Polyline')):
-                feature_item = f'{dataset}/{fc}'
-                fields = [field.name for field in tuple(arcpy.ListFields(feature_item)) if field.name in excluded_fields]
-                fields.remove('Notes')
-                fields.append('SHAPE@')
-                fields.append('Notes')
-                fields = tuple(fields)
-                # check for multipart polylines
-                multipart_oids = array('i',[])
-                for row in arcpy.da.SearchCursor(feature_item,(fields[0],fields[-2])):
-                    num_parts = 0
-                    for part in row[1]:
-                        num_parts += 1
-                        if num_parts > 1:
-                            break
-                    if num_parts > 1:
-                        multipart_oids.append(row[0])
-
-                del num_parts
-
-                if len(multipart_oids):
-                    # NOT IMPLEMENTED
-                    pass
-
-                del multipart_oids
-
-                geo_num = (num_fields := len(fields)) - 2
-                info_range = range(1,num_fields-3)
-                polylines = dict()
-
-                for row in arcpy.da.SearchCursor(feature_item,fields):
-                    polylines[row[0]] = []
-                    coords = tuple([Coord_Pnt(vertex.X,vertex.Y) for polyline in row[geo_num] for vertex in polyline])
-                    polylines[row[0]].append(tuple([(coords[n],coords[n+1]) for n in range(len(coords)-1)]))
-                    del coords
-                    polylines[row[0]].append(tuple(row[n] for n in info_range))
-                    polylines[row[0]].append(row[num_fields-1])
-                    polylines[row[0]] = tuple(polylines[row[0]])
-
-                for oid in tuple(polylines.keys()):
-                    for n in range(len(current_coords := polylines[oid][0])-2):
-                        coord = current_coords[n]
-                        for x in range(n+2,len(current_coords)):
-                            pass
-
-        del excluded_fields
-
-    if placeholder == 'true':
-
-        edit = GeMS_Editor()
-
-        edit.end_session()
-
-    return
+    return None
 
 
 geofill_GeMS(gdb_path,enable_process)
