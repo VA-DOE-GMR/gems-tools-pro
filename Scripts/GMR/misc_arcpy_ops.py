@@ -15,8 +15,7 @@ def default_env_parameters() -> None:
         arcpy.env.processorType = "GPU"
     except Exception:
         arcpy.env.processorType = "CPU"
-
-    arcpy.env.parallelProcessingFactor = "50%"
+        arcpy.env.parallelProcessingFactor = "50%"
     arcpy.env.overwriteOutput = True
 
     return None
@@ -26,7 +25,7 @@ def explicit_typo_fix(item_path : str) -> None:
     feature classes and tables, excluding ones that should not be touched.
     '''
 
-    excluded_fields = frozenset(('created_user','last_edited_user','GeoMaterial','Notes','Definition'))
+    excluded_fields = {'created_user','last_edited_user','GeoMaterial','Notes','Definition'}
 
     if len((fields := tuple([field.name for field in tuple(arcpy.ListFields(item_path,field_type='String')) if not field.name in excluded_fields]))):
 

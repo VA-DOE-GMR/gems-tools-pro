@@ -271,7 +271,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         arcpy.AddMessage("Obtaining Label and Symbol information from DescriptionOfMapUnits table...")
 
         pairs = {row[0] : (row[1],row[2]) for row in arcpy.da.SearchCursor(f'{arcpy.env.workspace}/DescriptionOfMapUnits',('MapUnit','Label','Symbol')) if not (row[1] is None and row[2] is None) and not row[0] is None}
-        mapunits = frozenset(pairs.keys())
+        mapunits = set(pairs.keys())
 
         for dataset in datasets:
             for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset,feature_type='Polygon')):
@@ -353,7 +353,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
             hasOverlayPolys = True
             arcpy.management.MakeFeatureLayer(f'{arcpy.env.workspace}/GeologicMap/MapUnitOverlayPolys','temp_overlay_lyr')
             mapoverlays = getMapUnits('temp_overlay_lyr')
-            overlay_labels = frozenset({row[0] for row in arcpy.da.SearchCursor('temp_overlay_lyr','MapUnit')})
+            overlay_labels = {row[0] for row in arcpy.da.SearchCursor('temp_overlay_lyr','MapUnit')}
 
         hasCrossSection = False
 
@@ -389,7 +389,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                                 del count
                             if len(matched):
                                 edit = GeMS_Editor()
-                                oids = frozenset(matched.keys())
+                                oids = set(matched.keys())
                                 arcpy.AddMessage(f'Updating {fc} in {dataset}...')
                                 with arcpy.da.UpdateCursor(feature_item,fields) as cursor:
                                     for row in cursor:
@@ -401,7 +401,6 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                                 del oids
                                 edit.end_session()
                             del matched ; del fields ; del feature_item
-                    edit = GeMS_Editor()
                     feature_item = f'{arcpy.env.workspace}/{dataset}/{fc}'
                     if not 'MapUnit' in [field.name for field in tuple(arcpy.ListFields(feature_item,field_type='String'))]:
                         del feature_item
@@ -423,8 +422,9 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                                 matched[row[0]] = mapunit
                         del count
                     if len(matched):
+                        edit = GeMS_Editor()
                         arcpy.AddMessage(f'Updating {fc} in {dataset}...')
-                        oids = frozenset(matched.keys())
+                        oids = set(matched.keys())
                         with arcpy.da.UpdateCursor(feature_item,fields) as cursor:
                             for row in cursor:
                                 if row[0] in oids:
@@ -434,8 +434,8 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                                             cursor.updateRow(row)
                                         del new_str
                         del oids
+                        edit.end_session()
                     del matched ; del fields ; del feature_item
-                    edit.end_session()
 
         del mapunits ; del mapoverlays ; del hasOverlayPolys ; del overlay_labels
 
@@ -480,7 +480,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                             del count
                         if len(matched):
                             edit = GeMS_Editor()
-                            oids = frozenset(matched.keys())
+                            oids = set(matched.keys())
                             with arcpy.da.UpdateCursor(feature_item,fields) as cursor:
                                 for row in cursor:
                                     if row[0] in oids:
@@ -502,7 +502,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         arcpy.AddMessage("Alphabetizing and adding missing terms to Glossary...")
 
         used_terms = set()
-        valid_fields = frozenset({'Type','IdentityConfidence','ExistenceConfidence'})
+        valid_fields = {'Type','IdentityConfidence','ExistenceConfidence'}
 
         for dataset in datasets:
             for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset)):
@@ -609,7 +609,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         arcpy.AddMessage('Filling out and populating DataSources table...')
 
         found_items = set()
-        valid_fields = frozenset(('DataSourceID','LocationSourceID','OrientationSourceID'))
+        valid_fields = {'DataSourceID','LocationSourceID','OrientationSourceID'}
 
         for dataset in datasets:
             for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset)):
@@ -677,7 +677,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
             temp_table = arcpy.management.MakeTableView("DGMRgeo.DBO.DataSources",'temp_table')
 
             source_dict = {row[3] : (row[0],row[1],row[2]) for row in arcpy.da.SearchCursor('temp_table',('Source','Notes','URL','DataSources_ID')) if not None in (row[0],row[3])}
-            master_dasids = frozenset(source_dict.keys())
+            master_dasids = set(source_dict.keys())
             valid_dasids = tuple(sorted([item for item in found_dasids if item in master_dasids],key=str))
 
             arcpy.env.workspace = code_directory[:]
@@ -744,7 +744,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         del naloe_zelmatitum
 
     # Autofill _ID fields
-    # This should always be the last thing done if enabled and is enabled by default.
+    # This should always be the last thing done if enabled.
     if enable_process[5] == 'true':
 
         arcpy.AddMessage("Filling out _ID fields, excluding DataSources table...")
