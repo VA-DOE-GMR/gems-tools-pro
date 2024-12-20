@@ -5,7 +5,7 @@ from decimal import Decimal,getcontext
 getcontext().prec = 6
 
 alphanum = set(f'{digits}{ascii_letters}')
-double_puncts = tuple([punct * 2 for punct in list(punctuation)])
+double_puncts = tuple([punct * 2 for punct in punctuation])
 
 class Referential_Information:
 
