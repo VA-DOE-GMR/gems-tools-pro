@@ -7,7 +7,9 @@
 [![gems on USGS](https://img.shields.io/badge/-NGMDB_GeMS-brightgreen)](https://ngmdb.usgs.gov/Info/standards/GeMS/)
 
 > ## Latest Changes
-> GMR's extended toolbox is now available on its own [releases page](https://github.com/VA-DOE-GMR/gems-tools-pro/releases)!
+> Check out the newest release: [v1.1.0](https://github.com/VA-DOE-GMR/gems-tools-pro/releases/tag/v1.1.0)!
+> - Check Glossary now checks terms against the new GMR Glossary table in SDE instead of a static spreadsheet.
+> - "Autofill AreaFillRGB and Symbol" in GeMS Autofiller has changed the way it handles Qal and water symbols.
 
 # GMR Changes to GeMS Tools for ArcGIS Pro <img width="300" align="right" src="https://www.virginia.gov/media/vagov/images/agencies/dmme_logo.jpg"/>
 
