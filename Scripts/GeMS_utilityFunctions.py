@@ -103,10 +103,11 @@ def writeLogfile(gdb, msg):
     timeUser = "[" + time.asctime() + "][" + os.environ["USERNAME"] + "] "
     logfileName = os.path.join(gdb, "00log.txt")
     try:
-        with open(os.path.join(gdb,logfileName),"a") as logfile:
-            logfile.write("%s%s\n" % (timeUser,msg))
+        logfile = open(os.path.join(gdb, logfileName), "a")
+        logfile.write(timeUser + msg + "\n")
+        logfile.close()
     except:
-        addMsgAndPrint("Failed to write to %s" % logfileName)
+        addMsgAndPrint("Failed to write to " + logfileName)
         addMsgAndPrint("  maybe file is already open?")
 
 
@@ -244,11 +245,11 @@ def isQuestionable(confidenceValue):
 
 # returns True if orientationType is a planar (not linear) feature
 def isPlanar(orientationType):
+    planarTypes = ["joint", "bedding", "cleavage", "foliation", "parting"]
     isPlanarType = False
-    for pT in ("joint", "bedding", "cleavage", "foliation", "parting"):
+    for pT in planarTypes:
         if pT in orientationType.lower():
             isPlanarType = True
-            break
     return isPlanarType
 
 
