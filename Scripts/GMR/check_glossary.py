@@ -1,25 +1,28 @@
 import sys
 import arcpy
 import pandas
+import SDE_setup
+
+
 
 def main(table):
     """
-    Check database glossary against GMR glossary
+    Check database glossary against GMR glossary.
     """
-    GMR_glossary = ".\Complete Glossary For GeMS.xlsx"
 
+    # access GMR glossary as dataframe
+    config = SDE_setup.load_config()
+    df_GMR = SDE_setup.table_to_dataframe(config,'Glossary_table')
+
+    # change workspace back to input
     arcpy.env.workspace = table
-
-    df_GMR = pandas.read_excel(GMR_glossary, "CompleteGlossary")
-    # tables = arcpy.ListTables('Glossary')
 
     # turn the Glossary table into df
     columns = [f.name for f in arcpy.ListFields(table)]
-
     df_gdb = pandas.DataFrame(data=arcpy.da.SearchCursor(table,columns),columns=columns)
 
     # check Term
-    df_gdb['exists'] = df_gdb['Term'].isin(df_GMR["Term"])
+    df_gdb['exists'] = df_gdb['Term'].isin(df_GMR['Term'])
 
     arcpy.AddMessage(f"The following term(s) were not found in the GMR glossary:\n"
                      f"{df_gdb['Term'].loc[df_gdb['exists'] == False]}"
