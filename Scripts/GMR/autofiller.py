@@ -139,10 +139,13 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         rgb_mapunits = dict()
         cmy_mapunits = dict()
         dups = set()
+
         for m in aprx.listMaps():
             for lyr in m.listLayers():
                 if 'MapUnitPolys' in lyr.name:
                     sym = lyr.symbology
+                    if getattr(sym.renderer,'groups',None) is None:
+                        break
                     for grp in sym.renderer.groups:
                         for itm in grp.items:
                             if not (unit_name := itm.label) in (None,''):
@@ -281,7 +284,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         arcpy.AddMessage("Obtaining Label and Symbol information from DescriptionOfMapUnits table...")
 
         pairs = {row[0] : (row[1],row[2]) for row in arcpy.da.SearchCursor(f'{arcpy.env.workspace}/DescriptionOfMapUnits',('MapUnit','Label','Symbol')) if not (row[1] is None and row[2] is None) and not row[0] is None}
-        mapunits = frozenset(pairs.keys())
+        mapunits = set(pairs.keys())
 
         for dataset in datasets:
             for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset,feature_type='Polygon')):
@@ -363,7 +366,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                         del count ; del selected_polys ; del selected_pnts
                         gc.collect()
                     if len(matched):
-                        oids = frozenset(matched.keys())
+                        oids = set(matched.keys())
                         with arcpy.da.UpdateCursor(feature_item,fields) as cursor:
                             for row in cursor:
                                 if row[0] in oids:
@@ -417,7 +420,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                             del count ; del selected_polys ; del selected_pnts
                             gc.collect()
                         if len(matched):
-                            oids = frozenset(matched.keys())
+                            oids = set(matched.keys())
                             with arcpy.da.UpdateCursor(feature_item,fields) as cursor:
                                 for row in cursor:
                                     if row[0] in oids:
@@ -448,7 +451,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         edit = GeMS_Editor()
 
         used_terms = set()
-        valid_fields = frozenset({'Type','IdentityConfidence','ExistenceConfidence'})
+        valid_fields = {'Type','IdentityConfidence','ExistenceConfidence'}
 
         for dataset in datasets:
             for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset)):
@@ -465,6 +468,9 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
         if None in used_terms:
             used_terms.remove(None)
+
+        with open('C:/Users/AJL/Desktop/test.txt','w') as f:
+            f.write(str(used_terms))
 
         logged_terms = []
         logged_def = []
@@ -512,7 +518,12 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                 if update_row:
                     cursor.updateRow(row)
 
-        del update_row ; del blanks ; del copy_count
+        try: del update_row
+        except Exception: pass
+        try: del blanks
+        except Exception: pass
+        try: copy_count
+        except Exception: pass
         gc.collect()
 
         for term in (logged_terms := tuple(logged_terms)):
@@ -531,6 +542,26 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         del used_terms
 
         sorted_terms = tuple(sorted(terms.keys(),key=str.lower))
+
+        counter = 0
+
+        for row in arcpy.da.SearchCursor(glossary_path,['Term']):
+            counter += 1
+
+        if counter > len(sorted_terms):
+            while counter != len(sorted_terms):
+                other_counter = 1
+                with arcpy.da.UpdateCursor(glossary_path,['Term']) as cursor:
+                    for row in cursor:
+                        other_counter += 1
+                        if other_counter == counter:
+                            cursor.deleteRow()
+                            counter -= 1
+            del other_counter
+        elif counter < len(sorted_terms):
+            with arcpy.da.InsertCursor(glossary_path,('Term','Definition','DefinitionSourceID','Glossary_ID')) as cursor:
+                for n in range(len(sorted_terms)-counter):
+                    cursor.insertRow((None,None,None,None))
 
         with arcpy.da.UpdateCursor(glossary_path,('Term','Definition','DefinitionSourceID')) as cursor:
             counter = -1
@@ -559,7 +590,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         edit = GeMS_Editor()
 
         found_items = set()
-        valid_fields = frozenset(('DataSourceID','LocationSourceID','OrientationSourceID'))
+        valid_fields = {'DataSourceID','LocationSourceID','OrientationSourceID'}
 
         for dataset in datasets:
             for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset)):
@@ -628,7 +659,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
             temp_table = arcpy.management.MakeTableView("DGMRgeo.DBO.DataSources",'temp_table')
 
             source_dict = {row[3] : (row[0],row[1],row[2]) for row in arcpy.da.SearchCursor('temp_table',('Source','Notes','URL','DataSources_ID')) if not None in (row[0],row[3])}
-            master_dasids = frozenset(source_dict.keys())
+            master_dasids = set(source_dict.keys())
             valid_dasids = tuple(sorted([item for item in found_dasids if item in master_dasids],key=str))
 
             arcpy.env.workspace = code_directory[:]
