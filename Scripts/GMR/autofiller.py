@@ -472,9 +472,6 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         if None in used_terms:
             used_terms.remove(None)
 
-        with open('C:/Users/AJL/Desktop/test.txt','w') as f:
-            f.write(str(used_terms))
-
         logged_terms = []
         logged_def = []
         logged_ID = []
