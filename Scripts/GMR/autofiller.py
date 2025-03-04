@@ -135,20 +135,30 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
         edit.end_session()
 
+        # This prevents a glitch concerning Symbology of a feature class still having information on deleted symbology that can transpire. Cause is undetermined.
+        valid_units = set()
+        for row in arcpy.da.SearchCursor(f'{arcpy.env.workspace}/GeologicMap/MapUnitPolys','MapUnit'):
+            if not row[0] is None:
+                if row[0].replace(' ','') != '':
+                    valid_units.add(row[0])
+
         aprx = arcpy.mp.ArcGISProject('CURRENT')
-        rgb_mapunits = dict()
-        cmy_mapunits = dict()
+        rgb_mapunits = {}
+        cmy_mapunits = {}
         dups = set()
+        invalids = {None,'','Qal','water'}
 
         for m in aprx.listMaps():
             for lyr in m.listLayers():
-                if 'MapUnitPolys' in lyr.name:
+                if 'MapUnitPolys' in lyr.name or 'MapUnitOverlayPolys' in lyr.name:
                     sym = lyr.symbology
                     if getattr(sym.renderer,'groups',None) is None:
                         break
                     for grp in sym.renderer.groups:
                         for itm in grp.items:
-                            if not (unit_name := itm.label) in (None,''):
+                            if not (unit_name := itm.label) in invalids:
+                                if 'MapUnitPolys' in lyr.name and not unit_name in valid_units:
+                                    continue
                                 try:
                                     color_space = tuple(itm.symbol.color.keys())
                                 except Exception:
@@ -231,6 +241,12 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
             del color_space
         except NameError:
             pass
+        try:
+            del valid_units
+        except NameError:
+            pass
+
+        del invalids
 
         if len(dups):
             for item in tuple(dups):
@@ -519,11 +535,11 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                     cursor.updateRow(row)
 
         try: del update_row
-        except Exception: pass
+        except NameError: pass
         try: del blanks
-        except Exception: pass
+        except NameError: pass
         try: copy_count
-        except Exception: pass
+        except NameError: pass
         gc.collect()
 
         for term in (logged_terms := tuple(logged_terms)):
