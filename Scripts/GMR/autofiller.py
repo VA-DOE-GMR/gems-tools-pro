@@ -678,7 +678,12 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
             source_dict = {row[3] : (row[0],row[1],row[2]) for row in arcpy.da.SearchCursor('temp_table',('Source','Notes','URL','DataSources_ID')) if not None in (row[0],row[3])}
             master_dasids = set(source_dict.keys())
-            valid_dasids = tuple(sorted([item for item in found_dasids if item in master_dasids],key=str))
+            dasids_dict = {int(item[3:]) : item for item in found_dasids if item in master_dasids}
+            dasids_nums = tuple(sorted(dasids_dict.keys()))
+            valid_dasids = tuple([dasids_dict[num] for num in dasids_nums])
+
+            del dasids_dict ; del dasids_nums
+            gc.collect()
 
             arcpy.env.workspace = code_directory[:]
 
@@ -721,7 +726,47 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                         cursor.updateRow(row)
                     counter += 1
 
-            del counter ; del source_dict ; del valid_dasids ; del datasources_path
+            del counter ; del source_dict ; del valid_dasids
+            gc.collect()
+
+            #fill blanks
+            with arcpy.da.UpdateCursor(datasources_path,('Notes','URL')) as cursor:
+                for row in cursor:
+                    row_updated = False
+                    if not row[0] is None:
+                        if row[0].strip() == '':
+                            row[0] = None
+                            row_updated = True
+                    if not row[1] is None:
+                        if row[1].strip() == '':
+                            row[1] = None
+                            row_updated = True
+                    if row_updated:
+                        cursor.updateRow(row)
+
+            if 'NGMDB_ID' in [item.name for item in tuple(arcpy.ListFields(datasources_path))]:
+                with arcpy.da.UpdateCursor(datasources_path,('URL','NGMDB_ID')) as cursor:
+                    for row in cursor:
+                        row_updated = False
+                        if row[0] is None:
+                            row[1] = None
+                            row_updated = True
+                        elif '.' in (row[0][-5],row[0][-4]):
+                            try:
+                                row[1] = int(row[0][row[0].rfind('_')+1:row[0].rfind('.')])
+                                row_updated = True
+                            except Exception:
+                                try:
+                                    row[1] = row[0][row[0].rfind('_')+1:row[0].rfind('.')]
+                                    row_updated = True
+                                except Exception:
+                                    if not row[1] is None:
+                                        row[1] = None
+                                        row_updated = True
+                        if row_updated:
+                            cursor.updateRow(row)
+
+            del row_updated
             gc.collect()
 
         else:
@@ -767,3 +812,4 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
 
 autofill_GeMS(gdb_path,enable_process)
+
