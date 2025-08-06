@@ -150,7 +150,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
         for m in aprx.listMaps():
             for lyr in m.listLayers():
-                if 'MapUnitPolys' in lyr.name or 'MapUnitOverlayPolys' in lyr.name:
+                if any(('MapUnitPolys' in lyr.name,'MapUnitOverlayPolys' in lyr.name)) and not lyr.name.endswith('Anno'):
                     sym = lyr.symbology
                     if getattr(sym.renderer,'groups',None) is None:
                         break
@@ -166,39 +166,40 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                                 if len(color_space) == 1:
                                     color_space = color_space[0]
                                     if not unit_name in rgb_mapunits.keys():
-                                        if color_space == 'RGB':
-                                            rgb_vals = tuple(itm.symbol.color[color_space])
-                                            rgb_mapunits[unit_name] = rgb_vals[:]
-                                            cmy_mapunits[unit_name] = rgb_into_cmy(rgb_vals[0],rgb_vals[1],rgb_vals[2])
-                                            del rgb_vals
-                                        elif color_space == 'HSV':
-                                            hsv_vals = tuple(itm.symbol.color[color_space])
-                                            # This fixes a weird glitch related to specifically running in ArcGIS Pro. For example,
-                                            # hsv_into_rgb is supposed to return a tuple of 3 integers. Instead, it returns of 3
-                                            # floats and seems to ignore the round() function. This does not happen when running this
-                                            # function outside ArcGIS Pro. map(round,hsv_into_rgb()) fixes this issue.
-                                            rgb_mapunits[unit_name] = tuple(map(round,hsv_into_rgb(hsv_vals[0],hsv_vals[1],hsv_vals[2])))
-                                            cmy_mapunits[unit_name] = rgb_into_cmy(rgb_mapunits[unit_name][0],rgb_mapunits[unit_name][1],rgb_mapunits[unit_name][2])
-                                            del hsv_vals
-                                        elif color_space == 'HSL':
-                                            hsl_vals = tuple(itm.symbol.color[color_space])
-                                            rgb_mapunits[unit_name] = tuple(map(round,hsl_into_rgb(hsl_vals[0],hsl_vals[1],hsl_vals[2])))
-                                            cmy_mapunits[unit_name] = rgb_into_cmy(rgb_mapunits[unit_name][0],rgb_mapunits[unit_name][1],rgb_mapunits[unit_name][2])
-                                            del hsl_vals
-                                        elif color_space == 'CMYK':
-                                            cmy_vals = tuple(itm.symbol.color[color_space])
-                                            rgb_mapunits[unit_name] = tuple(map(round,cmy_into_rgb(cmy_vals[0],cmy_vals[1],cmy_vals[2])))
-                                            cmy_mapunits[unit_name] = cmy_vals[:]
-                                            del cmy_vals
-                                        elif color_space == 'Grayscale':
-                                            rgb_mapunits[unit_name] = ((gs_num := tuple(itm.symbol.color[color_space])[0]),gs_num,gs_num)
-                                            cmy_mapunits[unit_name] = tuple(map(round,cmy_into_rgb(gs_num,gs_num,gs_num)))
-                                            del gs_num
-                                        else:
-                                            lab_vals = tuple(itm.symbol.color[color_space])
-                                            rgb_mapunits[unit_name] = tuple(map(round,lab_into_rgb(lab_vals[0],lab_vals[1],lab_vals[2])))
-                                            cmy_mapunits[unit_name] = rgb_into_cmy(rgb_mapunits[unit_name][0],rgb_mapunits[unit_name][1],rgb_mapunits[unit_name][2])
-                                            del lab_vals
+                                        match color_space:
+                                            case 'RGB':
+                                                rgb_vals = tuple(itm.symbol.color[color_space])
+                                                rgb_mapunits[unit_name] = rgb_vals[:]
+                                                cmy_mapunits[unit_name] = rgb_into_cmy(rgb_vals[0],rgb_vals[1],rgb_vals[2])
+                                                del rgb_vals
+                                            case 'HSV':
+                                                hsv_vals = tuple(itm.symbol.color[color_space])
+                                                # This fixes a weird glitch related to specifically running in ArcGIS Pro. For example,
+                                                # hsv_into_rgb is supposed to return a tuple of 3 integers. Instead, it returns of 3
+                                                # floats and seems to ignore the round() function. This does not happen when running this
+                                                # function outside ArcGIS Pro. map(round,hsv_into_rgb()) fixes this issue.
+                                                rgb_mapunits[unit_name] = tuple(map(round,hsv_into_rgb(hsv_vals[0],hsv_vals[1],hsv_vals[2])))
+                                                cmy_mapunits[unit_name] = rgb_into_cmy(rgb_mapunits[unit_name][0],rgb_mapunits[unit_name][1],rgb_mapunits[unit_name][2])
+                                                del hsv_vals
+                                            case 'HSL':
+                                                hsl_vals = tuple(itm.symbol.color[color_space])
+                                                rgb_mapunits[unit_name] = tuple(map(round,hsl_into_rgb(hsl_vals[0],hsl_vals[1],hsl_vals[2])))
+                                                cmy_mapunits[unit_name] = rgb_into_cmy(rgb_mapunits[unit_name][0],rgb_mapunits[unit_name][1],rgb_mapunits[unit_name][2])
+                                                del hsl_vals
+                                            case 'CMYK':
+                                                cmy_vals = tuple(itm.symbol.color[color_space])
+                                                rgb_mapunits[unit_name] = tuple(map(round,cmy_into_rgb(cmy_vals[0],cmy_vals[1],cmy_vals[2])))
+                                                cmy_mapunits[unit_name] = cmy_vals[:]
+                                                del cmy_vals
+                                            case 'Grayscale':
+                                                rgb_mapunits[unit_name] = ((gs_num := tuple(itm.symbol.color[color_space])[0]),gs_num,gs_num)
+                                                cmy_mapunits[unit_name] = tuple(map(round,cmy_into_rgb(gs_num,gs_num,gs_num)))
+                                                del gs_num
+                                            case _:
+                                                lab_vals = tuple(itm.symbol.color[color_space])
+                                                rgb_mapunits[unit_name] = tuple(map(round,lab_into_rgb(lab_vals[0],lab_vals[1],lab_vals[2])))
+                                                cmy_mapunits[unit_name] = rgb_into_cmy(rgb_mapunits[unit_name][0],rgb_mapunits[unit_name][1],rgb_mapunits[unit_name][2])
+                                                del lab_vals
                                     elif color_space == 'RGB':
                                         rgb_vals = tuple(itm.symbol.color[color_space])
                                         if rgb_vals[0] != rgb_mapunits[unit_name][0] or rgb_vals[1] != rgb_mapunits[unit_name][1] or rgb_vals[2] != rgb_mapunits[unit_name][2]:
@@ -304,20 +305,21 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
         for dataset in datasets:
             for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset,feature_type='Polygon')):
-                with arcpy.da.UpdateCursor(f'{arcpy.env.workspace}/{dataset}/{fc}',('MapUnit','Label','Symbol')) as cursor:
-                    for row in cursor:
-                        update_row = False
-                        if row[0] in mapunits:
-                            if (new_str := pairs[row[0]][0]) != row[1]:
-                                update_row = True
-                                row[1] = new_str
-                            if (new_str := pairs[row[0]][1]) != row[2]:
-                                update_row = True
-                                row[2] = new_str
-                            del new_str
-                            if update_row:
-                                cursor.updateRow(row)
-                        del update_row
+                if fc != 'OverlayPolys':
+                    with arcpy.da.UpdateCursor(f'{arcpy.env.workspace}/{dataset}/{fc}',('MapUnit','Label','Symbol')) as cursor:
+                        for row in cursor:
+                            update_row = False
+                            if row[0] in mapunits:
+                                if (new_str := pairs[row[0]][0]) != row[1]:
+                                    update_row = True
+                                    row[1] = new_str
+                                if (new_str := pairs[row[0]][1]) != row[2]:
+                                    update_row = True
+                                    row[2] = new_str
+                                del new_str
+                                if update_row:
+                                    cursor.updateRow(row)
+                            del update_row
 
         del mapunits ; del pairs
         gc.collect()

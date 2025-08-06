@@ -247,7 +247,7 @@ def geofill_GeMS(gdb_path : str, enable_process : tuple) -> None:
     # Correct self-intersecting polylines
     if placeholder == 'true':
 
-        excluded_fields = frozenset(('created_user','created_date','last_edited_user','last_edited_date','Shape','Shape_Length'))
+        excluded_fields = {'created_user','created_date','last_edited_user','last_edited_date','Shape','Shape_Length'}
 
         for dataset in datasets:
             for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset,feature_type='Polyline')):
@@ -288,12 +288,6 @@ def geofill_GeMS(gdb_path : str, enable_process : tuple) -> None:
                     polylines[row[0]].append(tuple(row[n] for n in info_range))
                     polylines[row[0]].append(row[num_fields-1])
                     polylines[row[0]] = tuple(polylines[row[0]])
-
-                for oid in tuple(polylines.keys()):
-                    for n in range(len(current_coords := polylines[oid][0])-2):
-                        coord = current_coords[n]
-                        for x in range(n+2,len(current_coords)):
-                            pass
 
         del excluded_fields
 
