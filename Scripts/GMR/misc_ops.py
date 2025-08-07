@@ -5,8 +5,8 @@ from decimal import Decimal,getcontext
 
 getcontext().prec = 6
 
-alphanum = frozenset(list(f'{digits}{ascii_letters}'))
-double_puncts = tuple([punct * 2 for punct in array('u',list(punctuation))])
+alphanum = set(f'{digits}{ascii_letters}')
+double_puncts = tuple([punct * 2 for punct in array('u',tuple(punctuation))])
 
 class Referential_Information:
 
@@ -76,3 +76,4 @@ def fixFieldItemString(entry_string : str):
             return entry_string
 
     return None
+
