@@ -1,6 +1,6 @@
 import arcpy,os,geo_cal,gc,sys
-from misc_arcpy_ops import default_env_parameters,explicit_typo_fix
-from misc_ops import fixFieldItemString,ref_info,to_tuple
+from misc_arcpy_ops import default_env_parameters,explicit_typo_fix,textEnforcing,fixFieldItemString
+from misc_ops import ref_info,to_tuple
 from array import array
 from geo_cal import Coord_Pnt,doIntersect
 
@@ -52,9 +52,20 @@ def geofill_GeMS(gdb_path : str, enable_process : tuple) -> None:
     # Removing explicit typos.
 
     # feature classes
-    map(explicit_typo_fix,tuple([f'{dataset}/{fc}' for dataset in datasets for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset))]))
+    for item in (feature_items := tuple([f'{dataset}/{fc}' for dataset in datasets for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset))])):
+        explicit_typo_fix(item)
     # tables
-    map(explicit_typo_fix,('Glossary','DescriptionOfMapUnits'))
+    for item in ('Glossary','DescriptionOfMapUnits'):
+        explicit_typo_fix(item)
+
+    # Enforce text consistency
+    # feature classes
+    for item in feature_items:
+        textEnforcing(item)
+    # tables
+    textEnforcing('/DescriptionOfMapUnits')
+
+    del feature_items
     gc.collect()
 
     edit.end_session()

@@ -1,11 +1,11 @@
 import arcpy,gc,os,sys
-from misc_arcpy_ops import default_env_parameters,explicit_typo_fix
-from misc_ops import fixFieldItemString,ref_info,to_tuple
+from misc_arcpy_ops import default_env_parameters,explicit_typo_fix,textEnforcing,enforceLabels
+from misc_ops import ref_info,to_tuple
 from re import sub as re_sub
 from fundamentals import hsv_into_rgb,hsl_into_rgb,lab_into_rgb,cmy_into_rgb,rgb_into_cmy,cmy_into_wpg
 
 gdb_path = sys.argv[1]
-enable_process = tuple([sys.argv[n] for n in range(2,8)])
+enable_process = tuple([sys.argv[n] for n in range(2,9)])
 
 # Used to fill out _ID fields.
 def gems_id_writer(item_path : str, item_name : str) -> None:
@@ -92,19 +92,30 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
     # well as applying fixes and changes that will be required to be done
     # regardless.
 
-    # Removing explicit typos.
-
     edit = GeMS_Editor()
 
-    arcpy.AddMessage("Fixing explicit typos in feature classes and tables as well as invalid capitalization...")
+    arcpy.AddMessage("Fixing explicit typos in feature classes and tables as well as invalid capitalizations...")
 
     # feature classes
-    map(explicit_typo_fix,tuple([f'{dataset}/{fc}' for dataset in datasets for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset))]))
+    for item in (feature_items := tuple([f'{dataset}/{fc}' for dataset in datasets for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset))])):
+        explicit_typo_fix(item)
     # tables
-    map(explicit_typo_fix,('Glossary','DescriptionOfMapUnits'))
+    for item in ('Glossary','DescriptionOfMapUnits'):
+        explicit_typo_fix(item)
+
+    # Enforce text consistency
+    # feature classes
+    for item in feature_items:
+        textEnforcing(item)
+    # tables
+    textEnforcing('/DescriptionOfMapUnits')
+
+    del feature_items
     gc.collect()
 
     edit.end_session()
+
+    arcpy.AddMessage("Typos and invalid capitalizations have been rectified.\n")
 
     # Multi-Color/-Patterned MapUnits are skipped, excluding water and alluvium,
     # which have an explicit symbol used for them.
@@ -249,8 +260,11 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
         del invalids
 
+        gc.collect()
+
         if len(dups):
             for item in tuple(dups):
+                # There should not be a case where two map units are given the same color designation/symbology.
                 arcpy.AddError(f'{item} has more than one color symbol designated for the same MapUnit between two polygon feature classes.')
                 rgb_mapunits.pop(item)
                 cmy_mapunits.pop(item)
@@ -660,8 +674,9 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
         code_directory = arcpy.env.workspace[:]
 
+        naloe_zelmatitum = False
+
         if os.path.exists('Z:/PROJECTS/MAPPING/GuidanceDocs/GeMS/gems-tools-pro-GMR/SDE_connection.sde'):
-            naloe_zelmatitum = False
             try:
                 arcpy.AddMessage('\n\nConnecting to pre-existing SDE...')
                 arcpy.env.workspace = 'Z:/PROJECTS/MAPPING/GuidanceDocs/GeMS/gems-tools-pro-GMR/SDE_connection.sde'
@@ -768,6 +783,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
             del row_updated
             gc.collect()
+            arcpy.AddMessage("DataSources table successfully processed!\n\n")
 
         else:
 
@@ -778,15 +794,34 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         del code_directory ; del now_num_rows
         gc.collect()
 
+        arcpy.AddMessage("Saving edits...")
         edit.end_session()
+        arcpy.AddMessage("Edits successfully saved!\n")
 
         del naloe_zelmatitum
 
         gc.collect()
 
+
+    # Enforce labels
+    if enable_process[5] == 'true':
+
+        arcpy.AddMessage("Checking and/or Correcting Label fields in all feature classes...")
+
+        edit = GeMS_Editor()
+
+        for dataset in datasets:
+            for fc in tuple([item for item in arcpy.ListFeatureClasses(feature_dataset=dataset) if not item.endswith('Anno')]):
+                if 'Label' in (fc_fields := tuple([field.name for field in arcpy.ListFields(f'{dataset}/{fc}',field_type='String')])):
+                    enforceLabels(f'{dataset}/{fc}')
+
+        arcpy.AddMessage("Process successfully completed!\n\nSaving edits...")
+        edit.end_session()
+        arcpy.AddMessage("Edits successfully saved!\n\n")
+
     # Autofill _ID fields
     # This should always be the last thing done if enabled and is enabled by default.
-    if enable_process[5] == 'true':
+    if enable_process[6] == 'true':
 
         arcpy.AddMessage("Filling out _ID fields, excluding DataSources table...")
 
@@ -800,9 +835,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
             gems_id_writer(f'{arcpy.env.workspace}/{table}',table)
 
         arcpy.AddMessage("Process successfully completed!\n\nSaving edits...")
-
         edit.end_session()
-
         arcpy.AddMessage("Edits successfully saved!\n\n")
 
 
@@ -812,4 +845,3 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
 
 autofill_GeMS(gdb_path,enable_process)
-

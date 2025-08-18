@@ -1,12 +1,8 @@
-from string import punctuation,ascii_letters,digits
 from math import log10,floor
-from array import array
 from decimal import Decimal,getcontext
+from typing import Union
 
 getcontext().prec = 6
-
-alphanum = set(f'{digits}{ascii_letters}')
-double_puncts = tuple([punct * 2 for punct in array('u',tuple(punctuation))])
 
 class Referential_Information:
 
@@ -38,6 +34,32 @@ class Referential_Information:
 
 ref_info = Referential_Information()
 
+# class TxtConstantEnforcer:
+#
+#     def __init__(self):
+#
+#         self.feature_rules = {
+#             'CartographicLines':(('DataSourceID','all_upper'),),
+#             'ContactsAndFaults':(('isConcealed','all_lower'),('ExistenceConfidence','all_lower'),('IdentityConfidence','all_lower'),('DataSourceID',('all_upper'))),
+#             'GenericPoints':(('LocationSourceID','all_upper'),('DataSourceID','all_upper')),
+#             'GeologicLines':(('isConcealed','all_lower'),('ExistenceConfidence','all_lower'),('IdentityConfidence','all_lower'),('DataSourceID','all_upper')),
+#             'MapUnitLines':(('isConcealed','all_lower'),('ExistenceConfidence','all_lower'),('IdentityConfidence','all_lower'),('DataSourceID','all_upper')),
+#             'MapUnitPoints':(('ExistenceConfidence','all_lower'),('IdentityConfidence','all_lower'),('DataSourceID','all_upper')),
+#             'MapUnitPointsAnno':(('Angle','zeroed'),),
+#             'MapUnitOverlayPolys':(('IdentityConfidence','all_lower'),('DataSourceID','all_upper')),
+#             'MapUnitOverlayPolysAnno':(('Angle','zeroed'),),
+#             'MapUnitPolys':(('IdentityConfidence','all_lower'),('DataSourceID','all_upper')),
+#             'MapUnitPolysAnno':(('Angle','zeroed'),),
+#             'OrientationPoints':(('IdentityConfidence','all_lower'),('LocationSourceID','all_upper'),('OrientationSourceID','all_upper')),
+#             'OrientationPointsAnno':(('Angle','zeroed'),),
+#             'OverlayPolys':(('IdentityConfidence','all_lower'),('DataSourceID','all_upper')),
+#             'Stations':(('FieldID','all_upper'),('DataSourceID','all_upper'))
+#         }
+#
+#         self.table_rules = {
+#             'DescriptionOfMapUnits':(('AreaFillRGB','no_spaces'),('DescriptionSourceID','all_upper'),('GeoMaterialConfidence','firsts_upper'))
+#         }
+
 def to_tuple(lst : list) -> tuple:
     '''Converts nested list into nested tuple
     Nested tuples are excellent for reducing memory-usage
@@ -56,24 +78,3 @@ def to_list(tple : tuple) -> list:
     # works with non-nested tuples as well.
 
     return list(to_list(i) if isinstance(i,tuple) else i for i in tple)
-
-# returning None indicates that is nothing of importance in that string.
-def fixFieldItemString(entry_string : str):
-    # No String entry should have consecutive spaces.
-    while entry_string.find('  ') != -1:
-        entry_string = entry_string.replace('  ',' ')
-    # No String entry should be begin and/or end with a space.
-    entry_string = entry_string.strip()
-    # No String entry should have two or more consecutive punctuation characters.
-    if entry_string == '':
-        return None
-    for double_punct in double_puncts:
-        if double_punct in entry_string:
-            while double_punct in entry_string:
-                entry_string = entry_string.replace(double_punct,double_punct[0])
-    for item in entry_string:
-        if item in alphanum:
-            return entry_string
-
-    return None
-
