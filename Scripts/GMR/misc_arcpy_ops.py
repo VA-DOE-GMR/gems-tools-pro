@@ -188,7 +188,7 @@ def textEnforcing(entry_item : str) -> None:
                             update_row = True
                     if update_row:
                         cursor.updateRow(row)
-        case 'MapUnitPoints' | 'MapUnitOverlayPolys':
+        case 'MapUnitPoints':
             with arcpy.da.UpdateCursor(entry_item,('ExistenceConfidence','IdentityConfidence','DataSourceID','Notes')) as cursor:
                 for row in cursor:
                     update_row = False
@@ -213,6 +213,30 @@ def textEnforcing(entry_item : str) -> None:
                             update_row = True
                         elif new_str != row[3]:
                             row[3] = new_str
+                            update_row = True
+                    if update_row:
+                        cursor.updateRow(row)
+        case 'MapUnitOverlayPolys':
+            with arcpy.da.UpdateCursor(entry_item,('IdentityConfidence','DataSourceID','Notes')) as cursor:
+                for row in cursor:
+                    update_row = False
+                    if not row[0] is None:
+                        if (new_str := row[0].lower()) != row[0]:
+                            row[0] = new_str
+                            update_row = True
+                    if not row[1] is None:
+                        if (new_str := row[1].upper()) != row[1]:
+                            row[1] = new_str
+                            update_row = True
+                    if not row[2] is None:
+                        new_str = row[2].strip()
+                        while '  ' in new_str:
+                            new_str = new_str.replace('  ',' ')
+                        if new_str == '':
+                            row[2] = None
+                            update_row = True
+                        elif new_str != row[2]:
+                            row[2] = new_str
                             update_row = True
                     if update_row:
                         cursor.updateRow(row)
@@ -430,3 +454,4 @@ def enforceLabels(feature_item : str) -> None:
             pass
 
     return None
+
