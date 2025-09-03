@@ -5,7 +5,7 @@ from re import sub as re_sub
 from fundamentals import hsv_into_rgb,hsl_into_rgb,lab_into_rgb,cmy_into_rgb,rgb_into_cmy,cmy_into_wpg
 
 gdb_path = sys.argv[1]
-enable_process = tuple([sys.argv[n] for n in range(2,9)])
+enable_process = tuple([sys.argv[n] for n in range(2,10)])
 
 # Used to fill out _ID fields.
 def gems_id_writer(item_path : str, item_name : str) -> None:
@@ -843,5 +843,10 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
     gc.collect()
 
+
+    if enable_process[7] == 'true':
+        arcpy.AddMessage("Compacting GeMS geodatabase...")
+        arcpy.management.Compact(arcpy.env.workspace)
+        arcpy.AddMessage("GeMS geodatabase successfully compacted!")
 
 autofill_GeMS(gdb_path,enable_process)
