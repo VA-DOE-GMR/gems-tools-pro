@@ -291,8 +291,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
             for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset)):
                 if fc.endswith('Anno'):
                     continue
-                fields = {field.name for field in tuple(arcpy.ListFields(f'{dataset}/{fc}'))}
-                if 'MapUnit' in fields and 'Label' in fields and 'Symbol' in fields:
+                if 'MapUnit' in fc:
                     with arcpy.da.UpdateCursor(f'{arcpy.env.workspace}/{dataset}/{fc}',('MapUnit','Label','Symbol')) as cursor:
                         for row in cursor:
                             update_row = False
