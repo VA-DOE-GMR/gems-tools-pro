@@ -466,7 +466,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
         del fields ; del valid_fields ; del feature_item
 
-        for row in arcpy.da.SearchCursor(f'{arcpy.env.workspace}/DescriptionOfMapUnits',['ParagraphStyle']):
+        for row in arcpy.da.SearchCursor(f'{arcpy.env.workspace}/DescriptionOfMapUnits',['ParagraphStyle','GeoMaterialConfidence']):
             used_terms.add(row[0])
 
         if None in used_terms:
@@ -859,3 +859,4 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         arcpy.AddMessage("GeMS geodatabase has been successfully compacted!")
 
 autofill_GeMS(gdb_path,enable_process)
+
