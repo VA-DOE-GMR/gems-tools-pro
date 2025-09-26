@@ -34,32 +34,6 @@ class Referential_Information:
 
 ref_info = Referential_Information()
 
-# class TxtConstantEnforcer:
-#
-#     def __init__(self):
-#
-#         self.feature_rules = {
-#             'CartographicLines':(('DataSourceID','all_upper'),),
-#             'ContactsAndFaults':(('isConcealed','all_lower'),('ExistenceConfidence','all_lower'),('IdentityConfidence','all_lower'),('DataSourceID',('all_upper'))),
-#             'GenericPoints':(('LocationSourceID','all_upper'),('DataSourceID','all_upper')),
-#             'GeologicLines':(('isConcealed','all_lower'),('ExistenceConfidence','all_lower'),('IdentityConfidence','all_lower'),('DataSourceID','all_upper')),
-#             'MapUnitLines':(('isConcealed','all_lower'),('ExistenceConfidence','all_lower'),('IdentityConfidence','all_lower'),('DataSourceID','all_upper')),
-#             'MapUnitPoints':(('ExistenceConfidence','all_lower'),('IdentityConfidence','all_lower'),('DataSourceID','all_upper')),
-#             'MapUnitPointsAnno':(('Angle','zeroed'),),
-#             'MapUnitOverlayPolys':(('IdentityConfidence','all_lower'),('DataSourceID','all_upper')),
-#             'MapUnitOverlayPolysAnno':(('Angle','zeroed'),),
-#             'MapUnitPolys':(('IdentityConfidence','all_lower'),('DataSourceID','all_upper')),
-#             'MapUnitPolysAnno':(('Angle','zeroed'),),
-#             'OrientationPoints':(('IdentityConfidence','all_lower'),('LocationSourceID','all_upper'),('OrientationSourceID','all_upper')),
-#             'OrientationPointsAnno':(('Angle','zeroed'),),
-#             'OverlayPolys':(('IdentityConfidence','all_lower'),('DataSourceID','all_upper')),
-#             'Stations':(('FieldID','all_upper'),('DataSourceID','all_upper'))
-#         }
-#
-#         self.table_rules = {
-#             'DescriptionOfMapUnits':(('AreaFillRGB','no_spaces'),('DescriptionSourceID','all_upper'),('GeoMaterialConfidence','firsts_upper'))
-#         }
-
 def to_tuple(lst : list) -> tuple:
     '''Converts nested list into nested tuple
     Nested tuples are excellent for reducing memory-usage

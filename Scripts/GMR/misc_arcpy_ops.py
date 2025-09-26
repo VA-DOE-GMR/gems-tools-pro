@@ -351,8 +351,8 @@ def enforceLabels(feature_item : str) -> None:
                     if not row[0] is None and not row[1] is None:
                         mapunit_dict[row[0]] = row[1]
                         label_dict[row[1]] = row[0]
-            mapunit_keys = tuple(mapunit_dict.keys())
-            label_keys = tuple(label_dict.keys())
+            mapunit_keys = set(mapunit_dict.keys())
+            label_keys = set(label_dict.keys())
             with arcpy.da.UpdateCursor(feature_item,('MapUnit','Label')) as cursor:
                 for row in cursor:
                     update_row = False
@@ -375,9 +375,9 @@ def enforceLabels(feature_item : str) -> None:
                         mapunit_dict[row[0]] = (row[1],row[2])
                         label_dict[row[1]] = (row[0],row[2])
                         symbol_dict[row[2]] = (row[0],row[1])
-            mapunit_keys = tuple(mapunit_dict.keys())
-            label_keys = tuple(label_dict.keys())
-            symbol_keys = tuple(symbol_dict.keys())
+            mapunit_keys = set(mapunit_dict.keys())
+            label_keys = set(label_dict.keys())
+            symbol_keys = set(symbol_dict.keys())
             with arcpy.da.UpdateCursor(feature_item,('MapUnit','Label','Symbol')) as cursor:
                 for row in cursor:
                     update_row = False
@@ -405,28 +405,45 @@ def enforceLabels(feature_item : str) -> None:
                     if update_row:
                         cursor.updateRow(row)
         case 'MapUnitPoints':
+            mapunit_dict = {}
             label_dict = {}
             symbol_dict = {}
-            with arcpy.da.SearchCursor('DescriptionOfMapUnits',('Label','Symbol')) as cursor:
+            with arcpy.da.SearchCursor('DescriptionOfMapUnits',('MapUnit','Label','Symbol')) as cursor:
                 for row in cursor:
-                    if not row[0] is None and not row[1] is None:
-                        label_dict[row[0]] = row[1]
-                        symbol_dict[row[1]] = row[0]
-            label_keys = tuple(label_dict.keys())
-            symbol_keys = tuple(symbol_dict.keys())
-            with arcpy.da.SearchCursor(feature_item,('Label','Symbol')) as cursor:
+                    if not row[0] is None and not row[1] is None and row[2] is None:
+                        mapunit_dict[row[0]] = (row[1],row[2])
+                        label_dict[row[1]] = (row[0],row[2])
+                        symbol_dict[row[2]] = (row[0],row[1])
+            mapunit_keys = set(mapunit_dict.keys())
+            label_keys = set(label_dict.keys())
+            symbol_keys = set(symbol_dict.keys())
+            with arcpy.da.UpdateCursor(feature_item,('MapUnit','Label','Symbol')) as cursor:
                 for row in cursor:
                     update_row = False
-                    if row[0] in label_keys:
-                        if (new_str := label_dict[row[0]]) != row[1]:
+                    if row[0] in mapunit_keys:
+                        if (new_str := mapunit_dict[row[0]][0]) != row[1]:
                             row[1] = new_str
                             update_row = True
-                    elif row[1] in symbol_keys:
-                        if (new_str := symbol_dict[row[1]]) != row[0]:
+                        if (new_str := mapunit_dict[row[0]][1]) != row[2]:
+                            row[2] = new_str
+                            update_row = True
+                    elif row[1] in label_keys:
+                        if (new_str := label_dict[row[1]][0]) != row[0]:
                             row[0] = new_str
+                            update_row = True
+                        if (new_str := label_dict[row[1]][1]) != row[2]:
+                            row[2] = new_str
+                            update_row = True
+                    elif row[2] in symbol_keys:
+                        if (new_str := symbol_dict[row[2]][0]) != row[0]:
+                            row[0] = new_str
+                            update_row = True
+                        if (new_str := symbol_dict[row[2]][1]) != row[1]:
+                            row[1] = new_str
                             update_row = True
                     if update_row:
                         cursor.updateRow(row)
+
         case 'OrientationPoints':
             with arcpy.da.UpdateCursor(feature_item,('Inclination','Symbol','Label')) as cursor:
                 for row in cursor:
@@ -454,4 +471,3 @@ def enforceLabels(feature_item : str) -> None:
             pass
 
     return None
-
