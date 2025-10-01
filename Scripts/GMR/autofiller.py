@@ -452,7 +452,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         edit = GeMS_Editor()
 
         used_terms = set()
-        valid_fields = {'Type','IdentityConfidence','ExistenceConfidence'}
+        valid_fields = {'Type','IdentityConfidence','ExistenceConfidence','LocationConfidence'}
 
         for dataset in datasets:
             for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset)):
@@ -860,5 +860,6 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         arcpy.AddMessage("GeMS geodatabase has been successfully compacted!")
 
 autofill_GeMS(gdb_path,enable_process)
+
 
 
