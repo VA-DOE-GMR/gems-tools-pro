@@ -454,7 +454,7 @@ def enforceLabels(feature_item : str) -> None:
                             update_row = True
                     elif not row[0] is None:
                         try:
-                            if (new_str := str(int(row[0]))) != row[2]:
+                            if (new_str := str(float(row[0]))) != row[2]:
                                 row[2] = new_str
                                 update_row = True
                         except ValueError:
@@ -471,3 +471,4 @@ def enforceLabels(feature_item : str) -> None:
             pass
 
     return None
+
