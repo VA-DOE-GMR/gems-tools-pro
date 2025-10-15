@@ -6,6 +6,10 @@ from color_code_dict import color_dict
 
 ## COLOR CONVERSIONS
 
+def rgb_into_lab(r : int, g : int, b : int) -> tuple:
+
+    return convert_color(sRGBColor(r,g,b,is_upscaled=True),LabColor,target_illuminant='d50')
+
 def hsv_into_rgb(h,s,v) -> tuple:
 
     rgb_vals = colorsys.hsv_to_rgb(h/360,s/100,v/100)
@@ -20,11 +24,25 @@ def hsl_into_rgb(h,s,l) -> tuple:
 
 def lab_into_rgb(l : int, a : int, b : int) -> tuple:
 
-    lab = LabColor(l,a,b)
     # d50 allows for best match.
-    rgb = convert_color(lab,sRGBColor,target_illuminant='d50')
+    rgb = convert_color(LabColor(l,a,b),sRGBColor,target_illuminant='d50')
 
-    return (round(rgb.rgb_r*255),round(rgb.rgb_g*255),round(rgb.rgb_b*255))
+    rgb_output = [round(rgb.rgb_r*255),round(rgb.rgb_g*255),round(rgb.rgb_b*255)]
+    # Values cannot be greater than 255 or less than 0.
+    if rgb_output[0] > 255:
+        rgb_output[0] = 255
+    elif rgb_output[0] < 0:
+        rgb_output[0] = 0
+    if rgb_output[1] > 255:
+        rgb_output[1] = 255
+    elif rgb_output[1] < 0:
+        rgb_output[1] = 0
+    if rgb_output[2] > 255:
+        rgb_output[2] = 255
+    elif rgb_output[2] < 0:
+        rgb_output[2] = 0
+
+    return tuple(rgb_output)
 
 def cmy_into_rgb(c,m,y) -> tuple:
 
