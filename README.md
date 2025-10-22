@@ -6,25 +6,18 @@
 [![HTMLdoc](https://img.shields.io/badge/-online_gems_documentation-brihtgreen)](https://scgeology.github.io/GeMS/index.html)
 [![gems on USGS](https://img.shields.io/badge/-NGMDB_GeMS-brightgreen)](https://ngmdb.usgs.gov/Info/standards/GeMS/)
 
-> ## Latest Changes
-> Check out the newest release: [v1.1.0](https://github.com/VA-DOE-GMR/gems-tools-pro/releases/tag/v1.1.0)!
-> - Check Glossary now checks terms against the new GMR Glossary table in SDE instead of a static spreadsheet.
-> - "Autofill AreaFillRGB and Symbol" in GeMS Autofiller has changed the way it handles Qal and water symbols.
 
 # GMR Changes to GeMS Tools for ArcGIS Pro <img width="300" align="right" src="https://www.virginia.gov/media/vagov/images/agencies/dmme_logo.jpg"/>
 
-This repository contains scripts to extend the USGS ArcGIS toolbox of Python 3 geoprocessing tools for creating, manipulating, and validating [GeMS](https://ngmdb.usgs.gov/Info/standards/GeMS/)-style geologic map databases for use in ArcGIS Pro.
+❗ GMR GeMS Tools has changed. Instead of an extension of the [USGS ArcGIS GeMS toolbox](https://github.com/DOI-USGS/gems-tools-pro), GMR GeMS Tools has become a standalone toolbox. This repository now contains only the scripts devloped by GMR for creating, manipulation, and validating [GeMS](https://ngmdb.usgs.gov/Info/standards/GeMS/)-style geologic map databases for use in ArcGIS Pro.
 
 ## Using the toolbox
-New tools should be available in the "GMR" section of the toolbox. Updates to existing tools will appear in the same section as in the USGS toolbox.
-
-The main USGS toolbox is at [DOI/gems-tools-pro](https://github.com/DOI-USGS/gems-tools-pro).
+Download the latest release and add the atbx file to Pro to start using it. Be warned: the toolbox no longer has any of the main USGS gems-tools-pro scripts! Take a look at the [USGS repo](https://github.com/DOI-USGS/gems-tools-pro) for those.
 
 ## Acknowledgements
+GMR tools are written and maintained by Adam Link and Jennie Latane.
 
-GeMS Tools was originally written by in Python 2.7 by Ralph Haugerud, Evan Thoms, and others and ported to Python 3 by Evan Thoms. Tools in the GMR section were written by Adam J. Link and Jennie Latane.
 
+## [License](https://github.com/VA-DOE-GMR/gems-tools-pro/blob/GMR-changes/LICENSE.md)
 
-## [License](https://github.com/DOI-USGS/gems-tools-pro/blob/master/LICENSE.md)
-
-## [Disclaimer](https://github.com/usgs/gems-tools-pro/blob/master/DISCLAIMER.md)
+## [Disclaimer](https://github.com/VA-DOE-GMR/gems-tools-pro/blob/GMR-changes/DISCLAIMER.md)

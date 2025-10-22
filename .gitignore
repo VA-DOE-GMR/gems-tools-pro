@@ -3,3 +3,5 @@ mkdocs.yml
 site/
 Scripts/.vscode/
 code.json
+Scripts/GMR/dmu_table_to_legend.py
+Notebooks
