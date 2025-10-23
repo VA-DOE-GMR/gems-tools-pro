@@ -23,7 +23,7 @@ def default_env_parameters() -> None:
     except Exception:
         arcpy.env.processorType = "CPU"
 
-    arcpy.env.parallelProcessingFactor = "50%"
+    arcpy.env.parallelProcessingFactor = "75%"
     arcpy.env.overwriteOutput = True
 
     return None
