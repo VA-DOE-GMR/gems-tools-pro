@@ -7,17 +7,19 @@
 [![gems on USGS](https://img.shields.io/badge/-NGMDB_GeMS-brightgreen)](https://ngmdb.usgs.gov/Info/standards/GeMS/)
 
 
-# GMR Changes to GeMS Tools for ArcGIS Pro <img width="300" align="right" src="https://www.virginia.gov/media/vagov/images/agencies/dmme_logo.jpg"/>
+# GMR GeMS Tools for ArcGIS Pro <img width="300" align="right" src="https://www.virginia.gov/media/vagov/images/agencies/dmme_logo.jpg"/>
 
 ❗ GMR GeMS Tools has changed. Instead of an extension of the [USGS ArcGIS GeMS toolbox](https://github.com/DOI-USGS/gems-tools-pro), GMR GeMS Tools has become a standalone toolbox. This repository now contains only the scripts devloped by GMR for creating, manipulation, and validating [GeMS](https://ngmdb.usgs.gov/Info/standards/GeMS/)-style geologic map databases for use in ArcGIS Pro.
 
 ## Using the toolbox
 Download the latest release and add the atbx file to Pro to start using it. Be warned: the toolbox no longer has any of the main USGS gems-tools-pro scripts! Take a look at the [USGS repo](https://github.com/DOI-USGS/gems-tools-pro) for those.
 
-## Acknowledgements
-GMR tools are written and maintained by Adam Link and Jennie Latane.
+## Acknowledgments
+GMR tools are written and maintained by Adam Link and Jennie Latane. Previous iterations of the toolbox contain contributions from the creators of USGS's gems-tools-pro.
 
 
 ## [License](https://github.com/VA-DOE-GMR/gems-tools-pro/blob/GMR-changes/LICENSE.md)
 
 ## [Disclaimer](https://github.com/VA-DOE-GMR/gems-tools-pro/blob/GMR-changes/DISCLAIMER.md)
+
+
