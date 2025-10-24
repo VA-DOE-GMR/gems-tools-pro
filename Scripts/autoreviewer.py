@@ -288,6 +288,7 @@ def autoreview_GeMS(gdb_path : str) -> None:
     id_dasids = tuple(dasids.keys())
 
     if len((redundant_dasids := tuple([id_dasid for id_dasid in id_dasids if not id_dasid in used_dasids]))):
+        # I is used instead of H for future proofing purposes.
         nums = array('I',[])
         for redundant_dasid in redundant_dasids:
             try: nums.append(int(redundant_dasid[3:]))
@@ -529,167 +530,221 @@ def autoreview_GeMS(gdb_path : str) -> None:
 
     del code_directory ; del naloe_zelmatitum
 
-    # arcpy.AddMessage("\nChecking DescriptionOfMapUnits table...")
-    #
-    # oid_name = None
-    # for field in tuple(arcpy.ListFields(f'{arcpy.env.workspace}/DescriptionOfMapUnits',field_type='OID')):
-    #     oid_name = field.name[:]
-    #     break
-    #
-    # dmu_info = {int(row[0]) : (row[1],row[2],row[3],row[4],row[5],row[6],row[7],row[8],row[9],row[10],row[11],row[12],row[13]) for row in arcpy.da.SearchCursor(f'{arcpy.env.workspace}/DescriptionOfMapUnits',(oid_name,'MapUnit','Name','FullName','Description','Age','HierarchyKey','ParagraphStyle','Label','Symbol','AreaFillRGB','GeoMaterial','GeoMaterialConfidence','AreaFillPatternDescription'))}
-    # oids = array('I',sorted(dmu_info.keys()))
-    #
-    # invalid_mapunits = {}
-    # invalid_names = {}
-    # invalid_fullnames = {}
-    # invalid_descriptions = {}
-    # invalid_ages = {}
-    # invalid_symbols = {}
-    # invalid_labels = {}
-    # invalid_rgbs = {}
-    # invalid_patternDescriptions = {}
-    # invalid_geoMaterials = {}
-    # invalid_geoMaterialConfidences = {}
-    # invalid_hierarchyKeys = {}
-    #
-    # # Since everything should be Level 3 Compliant, there is no need to check if
-    # # any entry in the ParagraphStyle field has no data.
-    # for oid in array('H',[oid for oid in oids if dmu_info[oid][6].startswith('DMUHeading')]):
-    #     current_item = dmu_info[oid]
-    #     if isinstance(current_item[0],str):
-    #         invalid_mapunits[oid] = 'Unneeded MapUnit'
-    #     if isinstance(current_item[3],str):
-    #         invalid_descriptions[oid] = 'Unneeded Description'
-    #     if isinstance(current_item[4],str):
-    #         invalid_ages[oid] = 'Unneeded Age'
-    #     if isinstance(current_item[7],str):
-    #         invalid_labels[oid] = 'Unneeded Label'
-    #     if isinstance(current_item[8],str):
-    #         invalid_symbols[oid] = 'Unneeded Symbol'
-    #     if isinstance(current_item[9],str):
-    #         invalid_rgbs[oid] = 'Unneeded RGB Values'
-    #     if isinstance(current_item[10],str):
-    #         invalid_geoMaterials[oid] = 'Unneeded GeoMaterial'
-    #     if isinstance(current_item[11],str):
-    #         invalid_geoMaterialConfidences[oid] = 'Unneeded GeoMaterialConfidence'
-    #     if isinstance(current_item[12],str):
-    #         invalid_patternDescriptions[oid] = 'Unneeded AreaFillPatternDescription'
-    #
-    # for oid in array('H',[oid for oid in oids if not dmu_info[oid][6].startswith('DMUHeading')]):
-    #     current_item = dmu_info[oid]
-    #     if not current_item[0].strip().isalnum():
-    #         invalid_mapunits[oid] = 'No Alphanumeric Characters'
-    #     if not current_item[1].strip().isalnum():
-    #         invalid_names[oid] = 'No Alphanumeric Characters'
-    #     if not current_item[2].strip().isalnum():
-    #         invalid_fullnames[oid] = 'No Alphanumeric Characters'
-    #     if not current_item[3].strip().isalnum():
-    #         invalid_descriptions[oid] = 'No Alphanumeric Characters'
-    #     if not current_item[5].strip().isalnum():
-    #         invalid_hierarchyKeys[oid] = 'No Alphanumeric Characters'
-    #     if not current_item[7].strip().isalnum():
-    #         invalid_labels[oid] = 'No Alphanumeric Characters'
-    #     if not current_item[8].strip().isalnum():
-    #         invalid_symbols[oid] = 'No Alphanumeric Characters'
-    #     if not current_item[9].strip().isalnum():
-    #         invalid_rgbs[oid] = 'No Alphanumeric Characters'
-    #
-    # errored_symbol_oids = set()
-    #
-    # for oid in oids:
-    #     if not oid in set(invalid_symbols.keys()):
-    #         if dmu_info[oid][8] is None:
-    #             errored_symbol_oids.add(oid)
-    #             invalid_symbols[oid] = 'Symbol not given for MapUnit'
-    #         elif not dmu_info[oid][8].isdigit():
-    #             errored_symbol_oids.add(oid)
-    #             invalid_symbols[oid] = 'Non-numeric character is present.'
-    #
-    # for oid in oids:
-    #     if not (current_item := dmu_info[oid][9]) is None:
-    #         if not current_item.replace(',','').isdigit():
-    #             invalid_rgbs[oid] = 'A character that is neither numeric nor a comma is present.'
-    #         elif (num_commas := current_item.count(',')) < 2:
-    #             invalid_rgbs[oid] = 'Missing 1 or 2 values required for RGB.'
-    #         elif num_commas > 2:
-    #             invalid_rgbs[oid] = 'More than 3 values given for the RGB.'
-    #         elif len(current_item) != 11:
-    #             invalid_rgbs[oid] = 'RGB values does not have Red, Green, and Blue values represented as 3 digits each.'
-    #         else:
-    #             rgb_str = current_item[:]
-    #             rgb_values = array('H',(0,0,0))
-    #             rgb_values[0] = int(rgb_str[:rgb_str.find(',')])
-    #             rgb_str = rgb_str[rgb_str.find(',')+1:]
-    #             rgb_values[1] = int(rgb_str[:rgb_str.find(',')])
-    #             rgb_values[2] = int(rgb_str[rgb_str.find(',')+1:])
-    #             if rgb_values[0] > 255 or rgb_values[1] > 255 or rgb_values[2] > 255:
-    #                 invalid_rgbs[oid] = 'Red, Green, and/or Blue value in RBG is greater than 255.'
-    #                 del rgb_str ; del rgb_values
-    #                 continue
-    #             del rgb_str
-    #             if not oid in errored_symbol_oids:
-    #                 if cmy_into_wpg(rgb_into_cmy(rgb_values[0],rgb_values[1],rgb_values[2])) != dmu_info[oid][8]:
-    #                     invalid_symbols[oid] = 'WPG Symbol value does not correspond to RGB value.'
-    #                     invalid_rgbs[oid] = 'RGB value does not correspond to WPG Symbol value.'
-    #             del rgb_values
-    #
-    # del errored_symbol_oids
-    #
-    # try: del num_commas
-    # except NameError: pass
-    #
-    # hierarchy_nums = {}
-    # # Converting hierarchy values into numbers for easier checking and comparison.
-    # for oid in oids:
-    #     if not '-' in (current_item := dmu_info[oid][5]):
-    #         try:
-    #             hierarchy_nums[oid] = array('H',(int(current_item),0,0,0,0,0,0,0,0,0))
-    #         except Exception:
-    #             invalid_hierarchyKeys[oid] = 'Invalid Entry'
-    #     elif not current_item.replace('-','').isdigit():
-    #         invalid_hierarchyKeys[oid] = 'Includes non-numeric characters (excluding "-")'
-    #     else:
-    #         temp_nums = array('H',[])
-    #         temp_str = current_item[:]
-    #         while '-' in temp_str:
-    #             temp_nums.append(int(temp_str[:temp_str.find('-')]))
-    #             temp_str = temp_str[temp_str.find('-')+1:]
-    #         temp_nums.append(int(temp_str))
-    #         del temp_str
-    #         for n in range(10-len(temp_nums)):
-    #             temp_nums.append(0)
-    #         hierarchy_nums[oid] = temp_nums[:]
-    #         del temp_nums
-    #
-    # issues_found = {}
-    #
-    # for oid in oids:
-    #     issues_found[oid] = []
-    #     if oid in invalid_mapunits.keys(): issues_found[oid].append(invalid_mapunits[oid])
-    #     else: issues_found[oid].append(None)
-    #     if oid in invalid_names.keys(): issues_found[oid].append(invalid_names[oid])
-    #     else: issues_found[oid].append(None)
-    #     if oid in invalid_fullnames.keys(): issues_found[oid].append(invalid_fullnames[oid])
-    #     else: issues_found[oid].append(None)
-    #     if oid in invalid_descriptions.keys(): issues_found[oid].append(invalid_descriptions[oid])
-    #     else: issues_found[oid].append(None)
-    #     if oid in invalid_ages.keys(): issues_found[oid].append(invalid_ages[oid])
-    #     else: issues_found[oid].append(None)
-    #     if oid in invalid_hierarchyKeys.keys(): issues_found[oid].append(invalid_hierarchyKeys[oid])
-    #     else: issues_found[oid].append(None)
-    #     if oid in invalid_labels.keys(): issues_found[oid].append(invalid_labels[oid])
-    #     else: issues_found[oid].append(None)
-    #     if oid in invalid_symbols.keys(): issues_found[oid].append(invalid_symbols[oid])
-    #     else: issues_found[oid].append(None)
-    #     if oid in invalid_rgbs.keys(): issues_found[oid].append(invalid_rgbs[oid])
-    #     else: issues_found[oid].append(None)
-    #     if tuple(issues_found[oid]).count(None) == 13:
-    #         del issues_found[oid]
-    #
-    # if len(invalid_mapunits.keys()) or len(invalid_descriptions.keys()) or len(invalid_ages.keys()) or len(invalid_descriptions.keys()) or len(invalid_names.keys()) or len(invalid_fullnames.keys()) or len(invalid_hierarchyKeys.keys()) or len(invalid_labels.keys()) or len(invalid_symbols.keys()) or len(invalid_rgbs.keys()) or len(invalid_geoMaterials.keys()) or len(invalid_geoMaterialConfidences.keys()):
-    #     pass
-    #
-    # del invalid_mapunits ; del invalid_descriptions ; del invalid_ages ; del invalid_symbols ; del invalid_labels ; del invalid_rgbs ; del invalid_patternDescriptions ; del invalid_geoMaterials ; del invalid_geoMaterialConfidences ; del current_item ; del hierarchy_nums ; del oids ; del dmu_info
+    arcpy.AddMessage("\nChecking DescriptionOfMapUnits table...")
+
+    oid_name = None
+    for field in tuple(arcpy.ListFields(f'{arcpy.env.workspace}/DescriptionOfMapUnits',field_type='OID')):
+        oid_name = field.name[:]
+        break
+
+    dmu_info = {int(row[0]) : (row[1],row[2],row[3],row[4],row[5],row[6],row[7],row[8],row[9],row[10],row[11],row[12],row[13]) for row in arcpy.da.SearchCursor(f'{arcpy.env.workspace}/DescriptionOfMapUnits',(oid_name,'MapUnit','Name','FullName','Description','Age','HierarchyKey','ParagraphStyle','Label','Symbol','AreaFillRGB','GeoMaterial','GeoMaterialConfidence','AreaFillPatternDescription'))}
+    oids = array('I',sorted(dmu_info.keys()))
+
+    invalid_mapunits = {}
+    invalid_names = {}
+    invalid_fullnames = {}
+    invalid_descriptions = {}
+    invalid_ages = {}
+    invalid_symbols = {}
+    invalid_labels = {}
+    invalid_rgbs = {}
+    invalid_patternDescriptions = {}
+    invalid_geoMaterials = {}
+    invalid_geoMaterialConfidences = {}
+    invalid_hierarchyKeys = {}
+
+    # Since everything should be Level 3 Compliant, there is no need to check if
+    # any entry in the ParagraphStyle field has no data.
+    for oid in array('I',[oid for oid in oids if dmu_info[oid][6].startswith('DMUHeading')]):
+        current_item = dmu_info[oid]
+        if isinstance(current_item[0],str):
+            invalid_mapunits[oid] = 'Unneeded MapUnit'
+        if isinstance(current_item[3],str):
+            invalid_descriptions[oid] = 'Unneeded Description'
+        if isinstance(current_item[4],str):
+            invalid_ages[oid] = 'Unneeded Age'
+        if isinstance(current_item[7],str):
+            invalid_labels[oid] = 'Unneeded Label'
+        if isinstance(current_item[8],str):
+            invalid_symbols[oid] = 'Unneeded Symbol'
+        if isinstance(current_item[9],str):
+            invalid_rgbs[oid] = 'Unneeded RGB Values'
+        if isinstance(current_item[10],str):
+            invalid_geoMaterials[oid] = 'Unneeded GeoMaterial'
+        if isinstance(current_item[11],str):
+            invalid_geoMaterialConfidences[oid] = 'Unneeded GeoMaterialConfidence'
+        if isinstance(current_item[12],str):
+            invalid_patternDescriptions[oid] = 'Unneeded AreaFillPatternDescription'
+
+    for oid in array('I',[oid for oid in oids if not dmu_info[oid][6].startswith('DMUHeading')]):
+        current_item = dmu_info[oid]
+        temp_str = current_item[5].strip()
+        if not temp_str.replace('-','').isdigit():
+            invalid_hierarchyKeys[oid] = 'No Alphanumeric Characters'
+        del temp_str
+
+    errored_symbol_oids = set()
+
+    for oid in oids:
+        if not oid in set(invalid_symbols.keys()):
+            if dmu_info[oid][8] is None:
+                if not dmu_info[oid][6].startswith('DMUHeading'):
+                    errored_symbol_oids.add(oid)
+                    invalid_symbols[oid] = 'Symbol not given for MapUnit'
+            elif not dmu_info[oid][8].isdigit():
+                errored_symbol_oids.add(oid)
+                invalid_symbols[oid] = 'Non-numeric character is present.'
+
+    for oid in oids:
+        if not (current_item := dmu_info[oid][9]) is None:
+            if not current_item.replace(',','').isdigit():
+                invalid_rgbs[oid] = 'A character that is neither numeric nor a comma is present.'
+            elif (num_commas := current_item.count(',')) < 2:
+                invalid_rgbs[oid] = 'Missing 1 or 2 values required for RGB.'
+            elif num_commas > 2:
+                invalid_rgbs[oid] = 'More than 3 values given for the RGB.'
+            elif len(current_item) != 11:
+                invalid_rgbs[oid] = 'RGB values does not have Red, Green, and Blue values represented as 3 digits each.'
+            else:
+                rgb_str = current_item[:]
+                rgb_values = array('H',(0,0,0))
+                rgb_values[0] = int(rgb_str[:rgb_str.find(',')])
+                rgb_str = rgb_str[rgb_str.find(',')+1:]
+                rgb_values[1] = int(rgb_str[:rgb_str.find(',')])
+                rgb_values[2] = int(rgb_str[rgb_str.find(',')+1:])
+                if rgb_values[0] > 255 or rgb_values[1] > 255 or rgb_values[2] > 255:
+                    invalid_rgbs[oid] = 'Red, Green, and/or Blue value in RBG is greater than 255.'
+                    del rgb_str ; del rgb_values
+                    continue
+                del rgb_str
+                if not oid in errored_symbol_oids:
+                    if cmy_into_wpg(rgb_into_cmy(rgb_values[0],rgb_values[1],rgb_values[2])) != dmu_info[oid][8]:
+                        invalid_symbols[oid] = 'WPG Symbol value does not correspond to RGB value.'
+                        invalid_rgbs[oid] = 'RGB value does not correspond to WPG Symbol value.'
+                del rgb_values
+
+    del errored_symbol_oids
+
+    try: del num_commas
+    except NameError: pass
+
+    hierarchy_nums = {}
+    # Converting hierarchy values into numbers for easier checking and comparison.
+    for oid in oids:
+        if not '-' in (current_item := dmu_info[oid][5]):
+            try:
+                hierarchy_nums[oid] = array('H',(int(current_item),0,0,0,0,0,0,0,0,0))
+            except Exception:
+                invalid_hierarchyKeys[oid] = 'Invalid Entry'
+        elif not current_item.replace('-','').isdigit():
+            invalid_hierarchyKeys[oid] = 'Includes non-numeric characters (excluding "-")'
+        else:
+            temp_nums = array('H',[])
+            temp_str = current_item[:]
+            while '-' in temp_str:
+                temp_nums.append(int(temp_str[:temp_str.find('-')]))
+                temp_str = temp_str[temp_str.find('-')+1:]
+            temp_nums.append(int(temp_str))
+            del temp_str
+            for n in range(10-len(temp_nums)):
+                temp_nums.append(0)
+            hierarchy_nums[oid] = temp_nums[:]
+            del temp_nums
+
+    temp_other_oids = set(invalid_geoMaterials.keys())
+
+    geoMaterials = set(row[0] for row in arcpy.da.SearchCursor(f'{arcpy.env.workspace}/GeoMaterialDict','GeoMaterial'))
+
+    for oid in array('I',[oid for oid in oids if not dmu_info[oid][6].startswith('DMUHeading')]):
+        if not oid in temp_other_oids:
+            if not dmu_info[oid][10] in geoMaterials:
+                invalid_geoMaterials[oid] = 'GeoMaterial not in GeoMaterialDict table.'
+
+    del temp_other_oids ; del geoMaterials
+
+    # This compiles all dictionaries into a singular one.
+    issues_found = {}
+
+    for oid in oids:
+        issues_found[oid] = []
+        if oid in invalid_mapunits.keys(): issues_found[oid].append(invalid_mapunits[oid])
+        else: issues_found[oid].append("N/A")
+        if oid in invalid_names.keys(): issues_found[oid].append(invalid_names[oid])
+        else: issues_found[oid].append("N/A")
+        if oid in invalid_fullnames.keys(): issues_found[oid].append(invalid_fullnames[oid])
+        else: issues_found[oid].append("N/A")
+        if oid in invalid_descriptions.keys(): issues_found[oid].append(invalid_descriptions[oid])
+        else: issues_found[oid].append("N/A")
+        if oid in invalid_ages.keys(): issues_found[oid].append(invalid_ages[oid])
+        else: issues_found[oid].append("N/A")
+        if oid in invalid_hierarchyKeys.keys(): issues_found[oid].append(invalid_hierarchyKeys[oid])
+        else: issues_found[oid].append("N/A")
+        if oid in invalid_labels.keys(): issues_found[oid].append(invalid_labels[oid])
+        else: issues_found[oid].append("N/A")
+        if oid in invalid_symbols.keys(): issues_found[oid].append(invalid_symbols[oid])
+        else: issues_found[oid].append("N/A")
+        if oid in invalid_rgbs.keys(): issues_found[oid].append(invalid_rgbs[oid])
+        else: issues_found[oid].append("N/A")
+        if oid in invalid_geoMaterials.keys(): issues_found[oid].append(invalid_geoMaterials[oid])
+        else: issues_found[oid].append("N/A")
+        if oid in invalid_geoMaterialConfidences.keys(): issues_found[oid].append(invalid_geoMaterialConfidences[oid])
+        else: issues_found[oid].append("N/A")
+        if oid in invalid_patternDescriptions.keys(): issues_found[oid].append(invalid_patternDescriptions[oid])
+        else: issues_found[oid].append("N/A")
+        if tuple(issues_found[oid]).count("N/A") == 12: del issues_found[oid]
+        else: issues_found[oid] = tuple(issues_found[oid])
+
+    del invalid_mapunits ; del invalid_descriptions ; del invalid_ages ; del invalid_symbols ; del invalid_labels ; del invalid_rgbs ; del invalid_patternDescriptions ; del invalid_geoMaterials ; del invalid_geoMaterialConfidences
+
+    if len(oids := array('I',issues_found.keys())):
+        arcpy.AddMessage('Potential Issues Found with DescriptionOfMapUnits:\n\nOID|MapUnit|Name|FullName|Description|Age|HierarchyKey|Label|Symbol|AreaFillRGB|GeoMaterial|GeoMaterialConfidence|AreaFillPatternDescription')
+        for oid in oids:
+            arcpy.AddMessage(f'{oid}|{issues_found[oid][0]}|{issues_found[oid][1]}|{issues_found[oid][2]}|{issues_found[oid][3]}|{issues_found[oid][4]}|{issues_found[oid][5]}|{issues_found[oid][6]}|{issues_found[oid][7]}|{issues_found[oid][8]}|{issues_found[oid][9]}|{issues_found[oid][10]}|{issues_found[oid][11]}')
+        if generateExcel:
+            arcpy.AddMessage("\nSaving to Excel file...")
+            if not exists(excel_path):
+                wb = Workbook()
+            else:
+                wb = load_workbook(excel_path,data_only=True)
+                for sheet in wb.sheetnames:
+                    if 'Potential_DMU_Errors' == sheet:
+                        wb.remove(wb[sheet])
+                        break
+            ws = wb.create_sheet('Potential_DMU_Errors')
+            ws['A1'] = 'OID'
+            ws['B1'] = 'MapUnit'
+            ws['C1'] = 'Name'
+            ws['D1'] = 'FullName'
+            ws['E1'] = 'Description'
+            ws['F1'] = 'Age'
+            ws['G1'] = 'HierarchyKey'
+            ws['H1'] = 'Label'
+            ws['I1'] = 'Symbol'
+            ws['J1'] = 'AreaFillRGB'
+            ws['K1'] = 'GeoMaterial'
+            ws['L1'] = 'GeoMaterialConfidence'
+            ws['M1'] = 'AreaFillPatternDescription'
+            for n in range(len(oids)):
+                ws[f'A{n+2}'] = str(oids[n])
+                ws[f'B{n+2}'] = issues_found[oids[n]][0]
+                ws[f'C{n+2}'] = issues_found[oids[n]][1]
+                ws[f'D{n+2}'] = issues_found[oids[n]][2]
+                ws[f'E{n+2}'] = issues_found[oids[n]][3]
+                ws[f'F{n+2}'] = issues_found[oids[n]][4]
+                ws[f'G{n+2}'] = issues_found[oids[n]][5]
+                ws[f'H{n+2}'] = issues_found[oids[n]][6]
+                ws[f'I{n+2}'] = issues_found[oids[n]][7]
+                ws[f'J{n+2}'] = issues_found[oids[n]][8]
+                ws[f'K{n+2}'] = issues_found[oids[n]][9]
+                ws[f'L{n+2}'] = issues_found[oids[n]][10]
+                ws[f'M{n+2}'] = issues_found[oids[n]][11]
+            if 'Sheet' in wb.sheetnames:
+                wb.remove(wb['Sheet'])
+            wb.save(excel_path)
+            wb.close()
+            arcpy.AddMessage("Save successful!\n")
+
+    del current_item ; del hierarchy_nums ; del oids ; del dmu_info ; del issues_found
 
     arcpy.AddMessage("\nChecking OrientationPoints feature classes...")
     for dataset in datasets:
