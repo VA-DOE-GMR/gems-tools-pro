@@ -11,18 +11,11 @@ def default_env_parameters() -> None:
     This sets optimal environment parameters.
     """
 
-    from subprocess import check_output as c_o
-
     #Stops ArcGIS Pro from logging everything being done as it can waste time.
     arcpy.SetLogHistory(False)
     arcpy.SetLogMetadata(False)
 
-    try:
-        c_o('nvidia-smi')
-        arcpy.env.processorType = "GPU"
-    except Exception:
-        arcpy.env.processorType = "CPU"
-
+    arcpy.env.processorType = "CPU"
     arcpy.env.parallelProcessingFactor = "75%"
     arcpy.env.overwriteOutput = True
 
