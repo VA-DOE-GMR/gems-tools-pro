@@ -6,11 +6,11 @@ from array import array
 from openpyxl import Workbook,load_workbook
 from fundamentals import rgb_into_cmy,cmy_into_wpg
 
+# sys.argv[0] is reserved.
 gdb_path = sys.argv[1]
+excel_path = sys.argv[2]
 
-def autoreview_GeMS(gdb_path : str) -> None:
-
-    excel_path = sys.argv[2]
+def autoreview_GeMS(gdb_path : str, excel_path : str) -> None:
 
     if excel_path.endswith('.xlsx') or excel_path.endswith('.xls'):
         generateExcel = True
@@ -578,12 +578,7 @@ def autoreview_GeMS(gdb_path : str) -> None:
 
     arcpy.AddMessage("\nChecking DescriptionOfMapUnits table...")
 
-    oid_name = None
-    for field in tuple(arcpy.ListFields(f'{arcpy.env.workspace}/DescriptionOfMapUnits',field_type='OID')):
-        oid_name = field.name[:]
-        break
-
-    dmu_info = {int(row[0]) : (row[1],row[2],row[3],row[4],row[5],row[6],row[7],row[8],row[9],row[10],row[11],row[12],row[13]) for row in arcpy.da.SearchCursor(f'{arcpy.env.workspace}/DescriptionOfMapUnits',(oid_name,'MapUnit','Name','FullName','Description','Age','HierarchyKey','ParagraphStyle','Label','Symbol','AreaFillRGB','GeoMaterial','GeoMaterialConfidence','AreaFillPatternDescription'))}
+    dmu_info = {int(row[0]) : (row[1],row[2],row[3],row[4],row[5],row[6],row[7],row[8],row[9],row[10],row[11],row[12],row[13]) for row in arcpy.da.SearchCursor(f'{arcpy.env.workspace}/DescriptionOfMapUnits',('OID@','MapUnit','Name','FullName','Description','Age','HierarchyKey','ParagraphStyle','Label','Symbol','AreaFillRGB','GeoMaterial','GeoMaterialConfidence','AreaFillPatternDescription'))}
     try: oids = array('L',sorted(dmu_info.keys()))
     except Exception: array('Q',sorted(dmu_info.keys()))
 
@@ -806,73 +801,12 @@ def autoreview_GeMS(gdb_path : str) -> None:
 
     del oids ; del dmu_info ; del issues_found
 
-    arcpy.AddMessage("\nCompiling list of all symbols used in the geodatabase...")
+    #arcpy.AddMessage("\nCompiling list of all symbols used in the geodatabase...")
 
     # Symbol Code, {Associated Types/Terms}, {Associated Feature Type}, {Associated Feature Classes}
     symbol_info = {}
 
-    for dataset in datasets:
-        for fc in arcpy.ListFeatureClasses(feature_dataset=dataset):
-            if not fc.endswith('Anno'):
-                item = f'{dataset}/{fc}'
-                oid_name = None
-                feature_type = None
-                for field in tuple(arcpy.ListFields(item)):
-                    if field.type == 'OID':
-                        oid_name = field.name
-                    elif field.type == 'Geometry':
-                        feature_type = field.name
-                    if isinstance(oid_name,str) and isinstance(feature_type,str):
-                        break
-                fields = [field.name for field in tuple(arcpy.ListFields(item))]
-                fields.remove(feature_type)
-                if 'Symbol' in (fields := set(fields)) and 'Type' in fields:
-                    for row in arcpy.da.SearchCursor(item,('Symbol','Type')):
-                        if (temp_symbol := row[0]) is None:
-                            if None in symbol_info.keys():
-                                symbol_info[None][0].add(row[1])
-                                symbol_info[None][1].add(feature_type)
-                                symbol_info[None][2].add(fc)
-                            else:
-                                symbol_info[None] = [{row[1]},{feature_type},{fc}]
-                        elif temp_symbol in symbol_info.keys():
-                            symbol_info[row[0]][0].add(row[1])
-                            symbol_info[row[0]][1].add(feature_type)
-                            symbol_info[row[0]][2].add(fc)
-                        else:
-                            symbol_info[row[0]] = [{row[1]},{feature_type},{fc}]
-                try: del temp_symbol
-                except NameError: pass
-                del fields ; del feature_type ; del oid_name ; del item
-
-    multiuse_symbols = {}
-
-    for symbol_code in tuple(symbol_info.keys()):
-        if len(symbol_info[symbol_code][0]) > 1:
-            temp_terms = tuple(sorted(symbol_info[symbol_code][0]))
-            temp_str = temp_terms[0][:]
-            for n in range(1,len(temp_terms)):
-                temp_str = f'{temp_str}|{temp_terms[n]}'
-            del temp_terms
-            multiuse_symbols[symbol_code] = [temp_str,None]
-            del temp_str
-        if len(symbol_info[symbol_code][1]) > 1:
-            temp_types = tuple(sorted(symbol_info[symbol_code][1]))
-            temp_str = temp_types[0][:]
-            for n in range(1,len(temp_types)):
-                temp_str = f'{temp_str}|{temp_types[n]}'
-            del temp_types
-            if symbol_code in multiuse_symbols.keys():
-                multiuse_symbols[symbol_code][1] = temp_str[:]
-            else:
-                multiuse_symbols[symbol_code] = [None,temp_str]
-            del temp_str
-
     del symbol_info
-
-    if len((symbol_codes := multiuse_symbols.keys())):
-        if generateExcel:
-            pass
 
     arcpy.AddMessage("\nChecking OrientationPoints feature classes...")
     for dataset in datasets:
@@ -880,13 +814,8 @@ def autoreview_GeMS(gdb_path : str) -> None:
             if fc.endswith('OrientationPoints'):
                 item = f'{dataset}/{fc}'
                 arcpy.AddMessage(f'\n{item}')
-                oid_name = None
-                for field in tuple(arcpy.ListFields(item)):
-                    if field.type == 'OID':
-                        oid_name = field.name
-                        break
                 ori_points = {}
-                for row in arcpy.da.SearchCursor(item,(oid_name,'Azimuth','Inclination','Label','MapUnit')):
+                for row in arcpy.da.SearchCursor(item,('OID@','Azimuth','Inclination','Label','MapUnit')):
                     ori_points[(oid := int(row[0]))] = []
                     if not row[1] is None:
                         ori_points[oid].append(float(row[1]))
@@ -1001,7 +930,7 @@ def autoreview_GeMS(gdb_path : str) -> None:
                         wb.close()
                         arcpy.AddMessage("Save successful!\n")
                         del current_rootName
-                del not_matching_incl_label ; del oids ; del ori_points ; del oid_name ; del item ; del num_oids
+                del not_matching_incl_label ; del oids ; del ori_points ; del item ; del num_oids
                 break
 
     arcpy.AddMessage("\nChecking if OrientationPoints and GenericPoints feature classes have the correct MapUnit indicated...")
@@ -1009,16 +938,13 @@ def autoreview_GeMS(gdb_path : str) -> None:
     for dataset in datasets:
         for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset,feature_type='Point')):
             if fc.endswith('OrientationPoints') or fc.endswith('GenericPoints'):
-                oid_name = None
-                for field in tuple(arcpy.ListFields((item := f'{dataset}/{fc}'),field_type='OID')):
-                    oid_name = field.name[:]
-                    break
+                item = f'{dataset}/{fc}'
                 mapunitpolys = None
                 for fc_2 in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset,feature_type='Polygon')):
                     if fc_2.endswith('MapUnitPolys'):
                         mapunitpolys = fc_2[:]
                         break
-                pnts_info = {row[0] : row[1] for row in arcpy.da.SearchCursor(item,(oid_name,'MapUnit'))}
+                pnts_info = {row[0] : row[1] for row in arcpy.da.SearchCursor(item,('OID@','MapUnit'))}
                 arcpy.management.MakeFeatureLayer((poly_item := f'{dataset}/{mapunitpolys}'),'temp_poly_lyr')
                 del mapunitpolys
                 mislabeled_mapunits = {}
@@ -1032,7 +958,7 @@ def autoreview_GeMS(gdb_path : str) -> None:
                     selected_pnts,redundant,count = arcpy.management.SelectLayerByLocation('temp_pnt_lyr','INTERSECT',selected_polys,'','NEW_SELECTION')
                     del redundant
                     if int(count):
-                        for row_2 in arcpy.da.SearchCursor(selected_pnts,(oid_name,'MapUnit')):
+                        for row_2 in arcpy.da.SearchCursor(selected_pnts,('OID@','MapUnit')):
                             if (claimed_mapunit := row_2[1]) != used_mapunit:
                                 mislabeled_mapunits[row_2[0]] = (claimed_mapunit,used_mapunit)
                         del claimed_mapunit
@@ -1066,20 +992,16 @@ def autoreview_GeMS(gdb_path : str) -> None:
                         wb.save(excel_path)
                         wb.close()
                         arcpy.AddMessage("Save successful!\n")
-                del mislabeled_mapunits ; del oid_name ; del oids ; del item ; del pnts_info ; del num_oids
+                del mislabeled_mapunits ; del oids ; del item ; del pnts_info ; del num_oids
 
     arcpy.AddMessage("\nChecking ContactsAndFaults and GeologicLines feature classes...")
     for dataset in datasets:
         for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset,feature_type='Polyline')):
             if fc.endswith('ContactsAndFaults') or fc.endswith('GeologicLines'):
-                oid_name = None
-                for field in tuple(arcpy.ListFields((item := f'{dataset}/{fc}'))):
-                    if field.type == 'OID':
-                        oid_name = field.name
-                        break
+                item = f'{dataset}/{fc}'
                 feature_oids = []
                 feature_labels = []
-                for row in arcpy.da.SearchCursor(item,(oid_name,'Type','Label')):
+                for row in arcpy.da.SearchCursor(item,('OID@','Type','Label')):
                     if not None in (row[1],row[2]):
                         feature_oids.append(row[0])
                         feature_labels.append(row[2])
@@ -1126,7 +1048,7 @@ def autoreview_GeMS(gdb_path : str) -> None:
                         wb.close()
                         arcpy.AddMessage("Save successful!\n")
                     del labels
-                del used_labels ; del labels_oids ; del feature_labels ; del oid_name ; del feature_oids ; del item
+                del used_labels ; del labels_oids ; del feature_labels ; del feature_oids ; del item
 
     dmu_mapunit_info = {row[0] : (row[1],row[2]) for row in arcpy.da.SearchCursor('DescriptionOfMapUnits',('MapUnit','Label','Symbol')) if not row[0] is None}
     dmu_mapunits = tuple(dmu_mapunit_info.keys())
@@ -1136,11 +1058,8 @@ def autoreview_GeMS(gdb_path : str) -> None:
         for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset)):
             if fc.endswith('MapUnitPolys') or fc.endswith('MapUnitOverlayPolys') or fc.endswith('MapUnitLines') or fc.endswith('MapUnitPoints'):
                 oids = []
-                oid_name = None
-                for field in tuple(arcpy.ListFields((item := f'{dataset}/{fc}'),field_type='OID')):
-                    oid_name = field.name[:]
-                    break
-                for row in arcpy.da.SearchCursor(item,(oid_name,'MapUnit','Label','Symbol')):
+                item = f'{dataset}/{fc}'
+                for row in arcpy.da.SearchCursor(item,('OID@','MapUnit','Label','Symbol')):
                     if not row[1] is None:
                         if row[1] in dmu_mapunits:
                             if dmu_mapunit_info[row[1]][0] != row[2] and dmu_mapunit_info[row[1]][1] == row[3]:
@@ -1172,7 +1091,7 @@ def autoreview_GeMS(gdb_path : str) -> None:
                         wb.save(excel_path)
                         wb.close()
                         arcpy.AddMessage("Save successful!\n")
-                del oids ; del oid_name ; del item ; del num_oids
+                del oids ; del item ; del num_oids
 
     del dmu_mapunit_info ; del dmu_mapunits
 
@@ -1188,4 +1107,4 @@ def autoreview_GeMS(gdb_path : str) -> None:
     return None
 
 
-autoreview_GeMS(gdb_path)
+autoreview_GeMS(gdb_path,excel_path)
