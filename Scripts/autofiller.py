@@ -1,11 +1,15 @@
 import arcpy,os,sys
+from typing import Union
+from array import array
 from misc_arcpy_ops import default_env_parameters,explicit_typo_fix,textEnforcing,enforceLabels
-from misc_ops import ref_info,to_tuple
+from misc_ops import ref_info
+from misc_ops import makeListIntArray
 from re import sub as re_sub
 from fundamentals import hsv_into_rgb,hsl_into_rgb,lab_into_rgb,cmy_into_rgb,rgb_into_cmy,cmy_into_wpg
 
+# sys.argv[0] is reserved.
 gdb_path = sys.argv[1]
-enable_process = tuple([sys.argv[n] for n in range(2,10)])
+enable_process = tuple([sys.argv[n] for n in range(2,11)])
 
 # Used to fill out _ID fields.
 def gems_id_writer(item_path : str, item_name : str) -> None:
@@ -116,9 +120,144 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
     arcpy.AddMessage("Typos and invalid capitalizations have been rectified.\n\n")
 
+    if enable_process[0] == 'true':
+
+        null_items = {None,0}
+
+        def getBrokenPoints(feature_item : str, oid_name : str):
+            oids = []
+            for row in arcpy.da.SearchCursor(feature_item,(oid_name,'SHAPE@XY')):
+                if row[1] in null_items:
+                    oids.append(row[0])
+                elif row[1][0] == 0 and row[1][1] == 0:
+                    oids.append(row[0])
+            return makeListIntArray(oids)
+
+        getBrokenPolylines = lambda feature_item, oid_name : makeListIntArray([row[0] for row in arcpy.da.SearchCursor(feature_item,(oid_name,'SHAPE@LENGTH')) if row[1] in null_items])
+
+        getBrokenPolygons = lambda feature_item, oid_name : makeListIntArray([row[0] for row in arcpy.da.SearchCursor(feature_item,(oid_name,'SHAPE@LENGTH','SHAPE@AREA')) if row[1] in null_items and row[2] in null_items])
+
+        def getSelectionStr(oids, oid_name) -> Union[None,str]:
+            if len(oids) >= 2:
+                return f'{oid_name} IN ({",".join(oids)})'
+            elif len(oids) == 1:
+                return f'{oid_name} = {oids[0]}'
+            else:
+                return None
+
+        arcpy.AddMessage('Checking for features with invalid geometry...')
+        for dataset in datasets:
+            for fc in arcpy.ListFeatureClasses(feature_dataset=dataset):
+                oid_name = None
+                for field in tuple(arcpy.ListFields((feature_item := f'{dataset}/{fc}'),field_type='OID')):
+                    oid_name = field.name
+                    break
+                match arcpy.da.Describe(feature_item)['shapeType']:
+                    case 'Point':
+                        if not isinstance((select_str := getSelectionStr((broken_oids := getBrokenPoints(feature_item,oid_name)),oid_name)),str):
+                            del select_str
+                            continue
+                        arcpy.AddMessage(f"\n{feature_item} has features with potentially corrupted geometry!\nAttempting to repair geometry...")
+                        arcpy.management.MakeFeatureLayer(f'{arcpy.env.workspace}/{feature_item}','temp_pnt_lyr')
+                        edit = GeMS_Editor()
+                        arcpy.management.RepairGeometry(arcpy.management.SelectLayerByAttribute('temp_pnt_lyr','NEW_SELECTION',select_str),'KEEP_NULL','ESRI')
+                        edit.end_session()
+                        if not isinstance((select_str := getSelectionStr((broken_oids := getBrokenPoints(feature_item,oid_name)),oid_name)),str):
+                            arcpy.AddMessage(f'Repair of {feature_item} was successful!\n')
+                            continue
+                        edit = GeMS_Editor()
+                        arcpy.management.RepairGeometry(arcpy.management.SelectLayerByAttribute('temp_pnt_lyr','NEW_SELECTION',select_str),'KEEP_NULL','OGC')
+                        edit.end_session()
+                        if not isinstance((select_str := getSelectionStr((broken_oids := getBrokenPoints(feature_item,oid_name)),oid_name)),str):
+                            arcpy.AddMessage(f'Repair of {feature_item} was successful!\n')
+                            continue
+                        arcpy.AddMessage(f'Unable to repair the geometry corrupted items!\nDeleting problematic items from {feature_item}...')
+                        edit = GeMS_Editor()
+                        try:
+                            arcpy.management.RepairGeometry(arcpy.management.SelectLayerByAttribute('temp_pnt_lyr','NEW_SELECTION',select_str),'DELETE_NULL','ESRI')
+                        except Exception:
+                            try:
+                                arcpy.management.RepairGeometry(arcpy.management.SelectLayerByAttribute('temp_pnt_lyr','NEW_SELECTION',select_str),'DELETE_NULL','OGC')
+                            except Exception:
+                                edit.end_session()
+                                arcpy.AddError(f"UNABLE TO DELETE NULL GEOMETRY ITEMS FROM {feature_item} FOR UNKNOWN REASONS!!!\n\n")
+                                continue
+                        edit.end_session()
+                        arcpy.AddMessage("Problematic items have been successfully removed!\n")
+                    case 'Polyline':
+                        if not isinstance((select_str := getSelectionStr((broken_oids := getBrokenPolylines(feature_item,oid_name)),oid_name)),str):
+                            continue
+                        arcpy.AddMessage(f"\n{feature_item} has features with potentially corrupted geometry!\nAttempting to repair geometry...")
+                        arcpy.management.MakeFeatureLayer(f'{arcpy.env.workspace}/{feature_item}','temp_line_lyr')
+                        edit = GeMS_Editor()
+                        arcpy.management.RepairGeometry(arcpy.management.SelectLayerByAttribute('temp_line_lyr','NEW_SELECTION',select_str),'KEEP_NULL','ESRI')
+                        edit.end_session()
+                        if not isinstance((select_str := getSelectionStr((broken_oids := getBrokenPolylines(feature_item,oid_name)),oid_name)),str):
+                            arcpy.AddMessage(f'Repair of {feature_item} was successful!\n')
+                            continue
+                        edit = GeMS_Editor()
+                        arcpy.management.RepairGeometry(arcpy.management.SelectLayerByAttribute('temp_line_lyr','NEW_SELECTION',select_str),'KEEP_NULL','OGC')
+                        edit.end_session()
+                        if not isinstance((select_str := getSelectionStr((broken_oids := getBrokenPolylines(feature_item,oid_name)),oid_name)),str):
+                            arcpy.AddMessage(f'Repair of {feature_item} was successful!\n')
+                            continue
+                        arcpy.AddMessage(f'Unable to repair the geometry corrupted items!\nDeleting problematic items from {feature_item}...')
+                        edit = GeMS_Editor()
+                        try:
+                            arcpy.management.RepairGeometry(arcpy.management.SelectLayerByAttribute('temp_line_lyr','NEW_SELECTION',select_str),'DELETE_NULL','ESRI')
+                        except Exception:
+                            try:
+                                arcpy.management.RepairGeometry(arcpy.management.SelectLayerByAttribute('temp_line_lyr','NEW_SELECTION',select_str),'DELETE_NULL','OGC')
+                            except Exception:
+                                edit.end_session()
+                                arcpy.AddError(f"UNABLE TO DELETE NULL GEOMETRY ITEMS FROM {feature_item} FOR UNKNOWN REASONS!!!\n\n")
+                                continue
+                        edit.end_session()
+                        arcpy.AddMessage("Problematic items have been successfully removed!\n")
+                    case 'Polygon':
+                        if not isinstance((select_str := getSelectionStr((broken_oids := getBrokenPolygons(feature_item,oid_name)),oid_name)),str):
+                            continue
+                        arcpy.AddMessage(f"\n{feature_item} has features with potentially corrupted geometry!\nAttempting to repair geometry...")
+                        arcpy.management.MakeFeatureLayer(f'{arcpy.env.workspace}/{feature_item}','temp_polygon_lyr')
+                        edit = GeMS_Editor()
+                        arcpy.management.RepairGeometry(arcpy.management.SelectLayerByAttribute('temp_polygon_lyr','NEW_SELECTION',select_str),'KEEP_NULL','ESRI')
+                        edit.end_session()
+                        if not isinstance((select_str := getSelectionStr((broken_oids := getBrokenPolygons(feature_item,oid_name)),oid_name)),str):
+                            arcpy.AddMessage(f'Repair of {feature_item} was successful!\n')
+                            continue
+                        edit = GeMS_Editor()
+                        arcpy.management.RepairGeometry(arcpy.management.SelectLayerByAttribute('temp_polygon_lyr','NEW_SELECTION',select_str),'KEEP_NULL','OGC')
+                        edit.end_session()
+                        if not isinstance((select_str := getSelectionStr((broken_oids := getBrokenPolygons(feature_item,oid_name)),oid_name)),str):
+                            arcpy.AddMessage(f'Repair of {feature_item} was successful!\n')
+                            continue
+                        arcpy.AddMessage(f'Unable to repair the geometry corrupted items!\nDeleting problematic items from {feature_item}...')
+                        edit = GeMS_Editor()
+                        try:
+                            arcpy.management.RepairGeometry(arcpy.management.SelectLayerByAttribute('temp_polygon_lyr','NEW_SELECTION',select_str),'DELETE_NULL','ESRI')
+                        except Exception:
+                            try:
+                                arcpy.management.RepairGeometry(arcpy.management.SelectLayerByAttribute('temp_polygon_lyr','NEW_SELECTION',select_str),'DELETE_NULL','OGC')
+                            except Exception:
+                                edit.end_session()
+                                arcpy.AddError(f"UNABLE TO DELETE NULL GEOMETRY ITEMS FROM {feature_item} FOR UNKNOWN REASONS!!!\n\n")
+                                continue
+                        edit.end_session()
+                        arcpy.AddMessage("Problematic items have been successfully removed!\n")
+                    case _:
+                        pass
+                try: del broken_oids
+                except NameError: pass
+                del oid_name ; del feature_item
+        del null_items
+        try: del select_str
+        except NameError: pass
+        arcpy.AddMessage("Process successfully completed!")
+
+
     # Multi-Color/-Patterned MapUnits are skipped, excluding water and alluvium,
     # which have an explicit symbol used for them.
-    if enable_process[0] == 'true':
+    if enable_process[1] == 'true':
 
         arcpy.AddMessage("Obtaining Symbology data from MapUnitPolys and MapUnitOverlayPolys and applying them to DescriptionOfMapUnits table...")
 
@@ -278,7 +417,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
     # Fillout Symbol and Label fields for feature classes in geodatabase using
     # corresponding information from DescriptionOfMapUnits table.
-    if enable_process[1] == 'true':
+    if enable_process[2] == 'true':
 
         edit = GeMS_Editor()
 
@@ -316,7 +455,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         arcpy.AddMessage("Edits saved!\n\n")
 
     # Autofill MapUnit fields in point feature classes
-    if enable_process[2] == 'true':
+    if enable_process[3] == 'true':
 
         arcpy.AddMessage("Filling out MapUnit field of point feature classes in geodatabase based upon location relative to polygons in MapUnitPolys...\n")
 
@@ -445,7 +584,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         arcpy.AddMessage("Edits saved!\n\n")
 
     # Alphabetize Glossary and Add missing terms
-    if enable_process[3] == 'true':
+    if enable_process[4] == 'true':
 
         arcpy.AddMessage("Alphabetizing and adding missing terms to Glossary...")
 
@@ -637,7 +776,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         arcpy.AddMessage("Edits successfully saved!\n\n")
 
     # Autopopulate DataSources table
-    if enable_process[4] == 'true':
+    if enable_process[5] == 'true':
 
         arcpy.AddMessage('Filling out and populating DataSources table...')
 
@@ -817,7 +956,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
 
     # Enforce labels
-    if enable_process[5] == 'true':
+    if enable_process[6] == 'true':
 
         arcpy.AddMessage("Checking and/or Correcting Label fields in all feature classes...")
 
@@ -834,7 +973,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
     # Autofill _ID fields
     # This should always be the last or second last thing done if enabled and is enabled by default.
-    if enable_process[6] == 'true':
+    if enable_process[7] == 'true':
 
         arcpy.AddMessage("Filling out _ID fields, excluding DataSources table...")
 
@@ -854,12 +993,10 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
     arcpy.env.workspace = current_workspace[:]
 
-    if enable_process[7] == 'true':
+
+    if enable_process[8] == 'true':
         arcpy.AddMessage('Compacting GeMS geodatabase...')
         arcpy.management.Compact(arcpy.env.workspace)
         arcpy.AddMessage("GeMS geodatabase has been successfully compacted!")
 
 autofill_GeMS(gdb_path,enable_process)
-
-
-

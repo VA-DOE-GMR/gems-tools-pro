@@ -1,6 +1,7 @@
 from math import log10,floor
 from decimal import Decimal,getcontext
 from typing import Union
+from array import array
 
 getcontext().prec = 6
 
@@ -33,6 +34,17 @@ class Referential_Information:
                 return f'X{self.x_id_count}X'
 
 ref_info = Referential_Information()
+
+
+def makeListIntArray(entry_list : list):
+
+    try:
+        return array('I',entry_list)
+    except Exception:
+        try:
+            return array('L',entry_list)
+        except Exception:
+            return array('Q',entry_list)
 
 def to_tuple(lst : list) -> tuple:
     '''Converts nested list into nested tuple
