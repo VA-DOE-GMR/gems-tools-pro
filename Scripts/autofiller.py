@@ -252,7 +252,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         del null_items
         try: del select_str
         except NameError: pass
-        arcpy.AddMessage("Process successfully completed!")
+        arcpy.AddMessage("Process successfully completed!\n")
 
 
     # Multi-Color/-Patterned MapUnits are skipped, excluding water and alluvium,
