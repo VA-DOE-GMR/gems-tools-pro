@@ -553,7 +553,7 @@ def autoreview_GeMS(gdb_path : str, excel_path : str) -> None:
 
     # Since everything should be Level 3 Compliant, there is no need to check if
     # any entry in the ParagraphStyle field has no data.
-    dmu_unit_oids = makeListIntArray([oid for oid in oids in dmu_info[oid][6].startswith('DMUHeading')])
+    dmu_unit_oids = makeListIntArray([oid for oid in oids if dmu_info[oid][6].startswith('DMUHeading')])
     for oid in dmu_unit_oids:
         current_item = dmu_info[oid]
         if isinstance(current_item[0],str):
@@ -1061,3 +1061,4 @@ def autoreview_GeMS(gdb_path : str, excel_path : str) -> None:
 
 
 autoreview_GeMS(gdb_path,excel_path)
+
