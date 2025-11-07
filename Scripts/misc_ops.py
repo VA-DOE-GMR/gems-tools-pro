@@ -1,9 +1,4 @@
-from math import log10,floor
-from decimal import Decimal,getcontext
-from typing import Union
 from array import array
-
-getcontext().prec = 6
 
 class Referential_Information:
 
@@ -45,22 +40,3 @@ def makeListIntArray(entry_list : list):
             return array('L',entry_list)
         except Exception:
             return array('Q',entry_list)
-
-def to_tuple(lst : list) -> tuple:
-    '''Converts nested list into nested tuple
-    Nested tuples are excellent for reducing memory-usage
-    as well as efficiency of loops using the outputed
-    nested tuple.'''
-
-    # works with non-nested lists as well.
-
-    return tuple(to_tuple(i) if isinstance(i,list) else i for i in lst)
-
-def to_list(tple : tuple) -> list:
-    '''Converts nested tuple into nested list.
-    This mainly exists with the idea of modifying items in a nested tuple
-    before converting it back into a nested tuple via to_tuple.'''
-
-    # works with non-nested tuples as well.
-
-    return list(to_list(i) if isinstance(i,tuple) else i for i in tple)
