@@ -1,6 +1,6 @@
 import arcpy,sys,os
 from misc_arcpy_ops import default_env_parameters
-from misc_ops import ref_info
+from misc_ops import ref_info,makeListIntArray
 from os.path import exists
 from array import array
 from openpyxl import Workbook,load_workbook
@@ -292,19 +292,11 @@ def autoreview_GeMS(gdb_path : str, excel_path : str) -> None:
     id_dasids = tuple(dasids.keys())
 
     if len((redundant_dasids := tuple([id_dasid for id_dasid in id_dasids if not id_dasid in used_dasids]))):
-        # I is used instead of H for future proofing purposes.
-        try:
-            nums = array('L',[])
-            for redundant_dasid in redundant_dasids:
-                try: nums.append(int(redundant_dasid[3:]))
-                except TypeError: pass
-            nums = array('L',sorted(nums))
-        except Exception:
-            nums = array('Q',[])
-            for redundant_dasid in redundant_dasids:
-                try: nums.append(int(redundant_dasid[3:]))
-                except TypeError: pass
-            nums = array('Q',[])
+        nums = []
+        for item in redundant_dasids:
+            try: nums.append(int(item[3:]))
+            except TypeError: pass
+        nums = makeListIntArray(sorted(nums))
         if (num_dasids := len((redundant_dasids := tuple([f'DAS{num}' for num in nums])))):
             arcpy.AddMessage("\nThe following are DASIDs that do not appear in the geodatabase:\n\n")
             for item in redundant_dasids:
@@ -336,18 +328,11 @@ def autoreview_GeMS(gdb_path : str, excel_path : str) -> None:
     id_dasids = set(id_dasids)
 
     if len((missing_dasids := tuple([used_dasid for used_dasid in tuple(used_dasids) if not used_dasid in id_dasids]))):
-        try:
-            nums = array('L',[])
-            for missing_dasid in missing_dasids:
-                try: nums.append(int(missing_dasid[3:]))
-                except TypeError: pass
-            nums = array('L',sorted(nums))
-        except Exception:
-            nums = array('Q',[])
-            for missing_dasid in missing_dasids:
-                try: nums.append(int(missing_dasid[3:]))
-                except TypeError: pass
-            nums = array('Q',sorted(nums))
+        nums = []
+        for item in missing_dasids:
+            try: nums.append(int(item[3:]))
+            except TypeError: pass
+        nums = makeListIntArray(sorted(nums))
         if (num_dasids := len((missing_dasids := tuple([f'DAS{num}' for num in nums])))):
             arcpy.AddMessage("\nThe following DASIDs are missing from DataSources table:\n\n")
             for item in missing_dasids:
@@ -404,18 +389,11 @@ def autoreview_GeMS(gdb_path : str, excel_path : str) -> None:
         id_dasids = tuple(id_dasids)
 
         if (num_dasids := len((unadded_dasids := tuple([id_dasid for id_dasid in id_dasids if not id_dasid in master_dasids])))):
-            try:
-                nums = array('L',[])
-                for unadded_dasid in unadded_dasids:
-                    try: nums.append(int(unadded_dasid[3:]))
-                    except TypeError: pass
-                nums = array('L',sorted(nums))
-            except Exception:
-                nums = array('Q',[])
-                for unadded_dasid in unadded_dasids:
-                    try: nums.append(int(unadded_dasid[3:]))
-                    except TypeError: pass
-                nums = array('Q',sorted(nums))
+            nums = []
+            for item in unadded_dasids:
+                try: nums.append(int(item[3:]))
+                except TypeError: pass
+            nums = makeListIntArray(sorted(nums))
             if len((unadded_dasids := tuple([f'DAS{num}' for num in nums]))):
                 arcpy.AddMessage("\nThe following DASIDs have not been added to the master DataSources table and/or have been included in the DataSources table by mistake:\n\n")
                 for item in unadded_dasids:
@@ -455,18 +433,11 @@ def autoreview_GeMS(gdb_path : str, excel_path : str) -> None:
                     invalid_url.append(id_dasid)
 
         if len((invalid_source := tuple(invalid_source))):
-            try:
-                nums = array('L',[])
-                for item in invalid_source:
-                    try: nums.append(int(item[3:]))
-                    except TypeError: pass
-                nums = array('L',sorted(nums))
-            except Exception:
-                nums = array('Q',[])
-                for item in invalid_source:
-                    try: nums.append(int(item[3:]))
-                    except TypeError: pass
-                nums = array('Q',sorted(nums))
+            nums = []
+            for item in invalid_source:
+                try: nums.append(int(item[3:]))
+                except TypeError: pass
+            nums = makeListIntArray(sorted(nums))
             if (num_invalids := len((invalid_source := tuple([f'DAS{num}' for num in nums])))):
                 arcpy.AddMessage("\nThe following DASIDs do not have their Source field matching the Source field for the master DataSources table:\n\n")
                 for item in invalid_source:
@@ -495,18 +466,11 @@ def autoreview_GeMS(gdb_path : str, excel_path : str) -> None:
         del invalid_source
 
         if (num_invalids := len((invalid_notes := tuple(invalid_notes)))):
-            try:
-                nums = array('L',[])
-                for item in invalid_notes:
-                    try: nums.append(int(item[3:]))
-                    except TypeError: pass
-                nums = array('L',sorted(nums))
-            except Exception:
-                nums = array('Q',[])
-                for item in invalid_notes:
-                    try: nums.append(int(item[3:]))
-                    except TypeError: pass
-                nums = array('Q',sorted(nums))
+            nums = []
+            for item in invalid_notes:
+                try: nums.append(int(item[3:]))
+                except TypeError: pass
+            nums = makeListIntArray(sorted(nums))
             if len((invalid_notes := tuple([f'DAS{num}' for num in nums]))):
                 arcpy.AddMessage("\nThe following DASIDs do not have their Notes field matching the Notes field for the master DataSources table:\n\n")
                 for item in invalid_notes:
@@ -535,18 +499,11 @@ def autoreview_GeMS(gdb_path : str, excel_path : str) -> None:
         del invalid_notes
 
         if (num_invalids := len((invalid_url := tuple(invalid_url)))):
-            try:
-                nums = array('L',[])
-                for item in invalid_url:
-                    try: nums.append(int(item[3:]))
-                    except TypeError: pass
-                nums = array('L',sorted(nums))
-            except Exception:
-                nums = array('Q',[])
-                for item in invalid_url:
-                    try: nums.append(int(item[3:]))
-                    except TypeError: pass
-                nums = array('Q',sorted(nums))
+            nums = []
+            for item in invalid_url:
+                try: nums.append(int(item[3:]))
+                except TypeError: pass
+            nums = makeListIntArray(sorted(nums))
             if len((invalid_url := tuple([f'DAS{num}' for num in nums]))):
                 arcpy.AddMessage("\nThe following DASIDs do not have their URL field matching the URL field for the master DataSources table:\n\n")
                 for item in invalid_url:
@@ -579,8 +536,7 @@ def autoreview_GeMS(gdb_path : str, excel_path : str) -> None:
     arcpy.AddMessage("\nChecking DescriptionOfMapUnits table...")
 
     dmu_info = {int(row[0]) : (row[1],row[2],row[3],row[4],row[5],row[6],row[7],row[8],row[9],row[10],row[11],row[12],row[13]) for row in arcpy.da.SearchCursor(f'{arcpy.env.workspace}/DescriptionOfMapUnits',('OID@','MapUnit','Name','FullName','Description','Age','HierarchyKey','ParagraphStyle','Label','Symbol','AreaFillRGB','GeoMaterial','GeoMaterialConfidence','AreaFillPatternDescription'))}
-    try: oids = array('L',sorted(dmu_info.keys()))
-    except Exception: array('Q',sorted(dmu_info.keys()))
+    oids = makeListIntArray(sorted(dmu_info.keys()))
 
     invalid_mapunits = {}
     invalid_names = {}
@@ -597,8 +553,7 @@ def autoreview_GeMS(gdb_path : str, excel_path : str) -> None:
 
     # Since everything should be Level 3 Compliant, there is no need to check if
     # any entry in the ParagraphStyle field has no data.
-    try: dmu_unit_oids = array('L',[oid for oid in oids if dmu_info[oid][6].startswith('DMUHeading')])
-    except Exception: dmu_unit_oids = array('Q',[oid for oid in oids if dmu_info[oid][6].startswith('DMUHeading')])
+    dmu_unit_oids = makeListIntArray([oid for oid in oids in dmu_info[oid][6].startswith('DMUHeading')])
     for oid in dmu_unit_oids:
         current_item = dmu_info[oid]
         if isinstance(current_item[0],str):
@@ -701,8 +656,7 @@ def autoreview_GeMS(gdb_path : str, excel_path : str) -> None:
 
     geoMaterials = set(row[0] for row in arcpy.da.SearchCursor(f'{arcpy.env.workspace}/GeoMaterialDict','GeoMaterial'))
 
-    try: temp_oids = array('L',[oid for oid in oids if not dmu_info[oid][6].startswith('DMUHeading')])
-    except Exception: temp_oids = array('Q',[oid for oid in oids if not dmu_info[oid][6].startswith('DMUHeading')])
+    temp_oids = makeListIntArray([oid for oid in oids if not dmu_info[oid][6].startswith('DMUHeading')])
 
     for oid in temp_oids:
         if not oid in temp_other_oids:
@@ -745,8 +699,7 @@ def autoreview_GeMS(gdb_path : str, excel_path : str) -> None:
 
     del invalid_mapunits ; del invalid_descriptions ; del invalid_ages ; del invalid_symbols ; del invalid_labels ; del invalid_rgbs ; del invalid_patternDescriptions ; del invalid_geoMaterials ; del invalid_geoMaterialConfidences
 
-    try: oids = array('L',issues_found.keys())
-    except Exception: oids = array('Q',issues_found.keys())
+    oids = makeListIntArray(tuple(issues_found.keys()))
 
     if len(oids):
         arcpy.AddMessage('Potential Issues Found with DescriptionOfMapUnits:\n\nOID|MapUnit|Name|FullName|Description|Age|HierarchyKey|Label|Symbol|AreaFillRGB|GeoMaterial|GeoMaterialConfidence|AreaFillPatternDescription')
