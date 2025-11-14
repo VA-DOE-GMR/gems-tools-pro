@@ -1,5 +1,5 @@
 import arcpy,sys,os
-from misc_arcpy_ops import default_env_parameters
+from misc_arcpy_ops import default_env_parameters,deselectFeatures
 from misc_ops import ref_info,makeListIntArray
 from os.path import exists
 from array import array
@@ -22,6 +22,7 @@ def autoreview_GeMS(gdb_path : str, excel_path : str) -> None:
             os.remove(excel_path)
     else:
         generateExcel = False
+
     current_workspace = arcpy.env.workspace[:]
     current_workspace = current_workspace.replace('\\','/')
     arcpy.env.workspace = gdb_path.replace('\\','/')
@@ -30,7 +31,7 @@ def autoreview_GeMS(gdb_path : str, excel_path : str) -> None:
 
     default_env_parameters()
 
-    datasets = tuple(arcpy.ListDatasets())
+    deselectFeatures((datasets := tuple(arcpy.ListDatasets())))
 
     arcpy.AddMessage("\nChecking Glossary table...")
 
@@ -1061,4 +1062,3 @@ def autoreview_GeMS(gdb_path : str, excel_path : str) -> None:
 
 
 autoreview_GeMS(gdb_path,excel_path)
-

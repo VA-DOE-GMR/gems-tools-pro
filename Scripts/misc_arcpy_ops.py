@@ -21,16 +21,25 @@ def default_env_parameters() -> None:
 
     return None
 
+# Used to prevent issues with running tools with features already selected in
+# ArcGIS Pro prior.
+def deselectFeatures(datasets : tuple) -> None:
+
+    for dataset in datasets:
+        for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset)):
+            arcpy.management.SelectLayerByAttribute(f'{dataset}/{fc}','CLEAR_SELECTION')
+
+    return None
 
 # returning None indicates that is nothing of importance in that string.
-
 def fixFieldItemString(entry_string : str) -> Union[str,None]:
     # No String entry should have consecutive spaces.
     while entry_string.find('  ') != -1:
         entry_string = entry_string.replace('  ',' ')
     # No String entry should be begin and/or end with a space.
     entry_string = entry_string.strip()
-    # No String entry should have two or more consecutive punctuation/special characters.
+    # No String entry should have two or more consecutive punctuation/special
+    # characters.
     if entry_string == '':
         return None
     for double_punct in double_puncts:
@@ -49,7 +58,8 @@ def explicit_typo_fix(item_path : str) -> None:
     feature classes and tables, excluding ones that should not be touched.
     '''
 
-    # Annotations are highly contextual and cannot be modified via automation with certainty.
+    # Annotations are highly contextual and cannot be modified via automation
+    # with certainty.
     if item_path.endswith('Anno'):
         return None
 
@@ -464,4 +474,3 @@ def enforceLabels(feature_item : str) -> None:
             pass
 
     return None
-
