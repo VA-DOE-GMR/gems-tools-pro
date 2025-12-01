@@ -58,7 +58,7 @@ def wpg_val(num) -> str:
         ctx.prec = 3
         num = Decimal(str(num))
         if num <= Decimal(8):
-            if Decimal(8) - num >= num:
+            if num >= Decimal(8) - num:
                 return 'A'
             return '0'
         elif num <= Decimal(13):
