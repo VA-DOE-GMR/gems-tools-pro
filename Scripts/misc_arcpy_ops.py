@@ -87,8 +87,14 @@ def textEnforcing(entry_item : str) -> None:
 
     ref_name = entry_item[entry_item.find('/')+1:]
 
+    if ref_name.isupper() or ref_name.islower():
+        # Invalid Name Schema
+        return None
+
     if ref_name.startswith('CS'):
-        ref_name = ref_name[3:]
+        ref_name = ref_name[2:]
+        while ref_name[0].isupper() and ref_name[1].isupper():
+            ref_name = ref_name[1:]
 
     match ref_name:
         case 'CartographicLines':
@@ -342,8 +348,14 @@ def enforceLabels(feature_item : str) -> None:
 
     ref_name = feature_item[feature_item.find('/')+1:]
 
+    if ref_name.isupper() or ref_name.islower():
+        # Invalid Name Schema
+        return None
+
     if ref_name.startswith('CS'):
-        ref_name = ref_name[3:]
+        ref_name = ref_name[2:]
+        while ref_name[0].isupper() and ref_name[1].isupper():
+            ref_name = ref_name[1:]
 
     match ref_name:
         case 'MapUnitLines':
