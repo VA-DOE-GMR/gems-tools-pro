@@ -482,7 +482,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         arcpy.management.MakeFeatureLayer(f'{arcpy.env.workspace}/GeologicMap/MapUnitPolys','temp_poly_lyr')
         mapunits = getMapUnits('temp_poly_lyr')
 
-        hasCrossSection = False
+        hasCrossSection = False ; num_cross_sections = 0
 
         for dataset in datasets:
             if not 'CrossSection' in dataset:
@@ -521,6 +521,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                         del oids
                     del matched ; del fields ; del feature_item
             else:
+                num_cross_sections += 1
                 hasCrossSection = True
 
         del mapunits
@@ -535,7 +536,19 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                             found_poly = True
                             break
                     if not found_poly:
-                        arcpy.AddMessage(f'\n{dataset} is missing CS{dataset[-1]}MapUnitPolys! Skipping {dataset}.\n')
+                        # There realistically should be no more than 26 cross
+                        # sections for a single GeMS geodatabase. This is just
+                        # to future-proof this tool.
+                        if num_cross_sections <= 26:
+                            arcpy.AddMessage(f'\n{dataset} is missing CS{dataset[-1]}MapUnitPolys! Skipping {dataset}.\n')
+                        elif num_cross_sections <= 702:
+                            arcpy.AddMessage(f'\n{dataset} is missing CS{dataset[-2:]}MapUnitPolys! Skipping {dataset}.\n')
+                        elif num_cross_sections <= 18278:
+                            arcpy.AddMessage(f'\n{dataset} is missing CS{dataset[-3:]}MapUnitPolys! Skipping {dataset}.\n')
+                        elif num_cross_sections <= 475254:
+                            arcpy.AddMessage(f'\n{dataset} is missing CS{dataset[-3:]}MapUnitPolys! Skipping {dataset}.\n')
+                        elif num_cross_sections <= 12356630:
+                            arcpy.AddMessage(f'\n{dataset} is missing CS{dataset[-4:]}MapUnitPolys! Skipping {dataset}.\n')
                         del found_poly
                         continue
                     del found_poly
@@ -576,7 +589,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                         del matched ; del fields ; del feature_item
                     del mapunits
 
-        del hasCrossSection
+        del hasCrossSection ; del num_cross_sections
 
         arcpy.AddMessage("Changes successfully applied.\n\nSaving edits...")
 
