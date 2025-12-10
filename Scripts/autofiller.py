@@ -266,7 +266,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         valid_units = set()
         for dataset in datasets:
             for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset)):
-                if 'MapUnit' in fc and not fc.endswith('Anno'):
+                if 'MapUnit' in fc and not fc.endswith('Anno') and not fc.startswith('Anno'):
                     for row in arcpy.da.SearchCursor(f'{arcpy.env.workspace}/{dataset}/{fc}','MapUnit'):
                         if not row[0] is None:
                             if row[0].replace(' ','') != '':
@@ -279,7 +279,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
         for m in aprx.listMaps():
             for lyr in m.listLayers():
-                if any(('MapUnitPolys' in lyr.name,'MapUnitOverlayPolys' in lyr.name,'MapUnitLines' in lyr.name,'MapUnitPoints' in lyr.name)) and not lyr.name.endswith('Anno'):
+                if any(('MapUnitPolys' in lyr.name,'MapUnitOverlayPolys' in lyr.name,'MapUnitLines' in lyr.name,'MapUnitPoints' in lyr.name)) and not lyr.name.endswith('Anno') and not lyr.name.startswith('Anno'):
                     sym = lyr.symbology
                     if getattr(sym.renderer,'groups',None) is None:
                         break
@@ -429,7 +429,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
         for dataset in datasets:
             for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset)):
-                if fc.endswith('Anno'):
+                if fc.endswith('Anno') or fc.startswith('Anno'):
                     continue
                 if 'MapUnit' in fc:
                     with arcpy.da.UpdateCursor(f'{arcpy.env.workspace}/{dataset}/{fc}',('MapUnit','Label','Symbol')) as cursor:
@@ -977,7 +977,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         edit = GeMS_Editor()
 
         for dataset in datasets:
-            for fc in tuple([item for item in arcpy.ListFeatureClasses(feature_dataset=dataset) if not item.endswith('Anno')]):
+            for fc in tuple([item for item in arcpy.ListFeatureClasses(feature_dataset=dataset) if not item.endswith('Anno') and not item.startswith('Anno')]):
                 if 'Label' in (fc_fields := tuple([field.name for field in arcpy.ListFields(f'{dataset}/{fc}',field_type='String')])):
                     enforceLabels(f'{dataset}/{fc}')
 
