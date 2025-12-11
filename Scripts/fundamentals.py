@@ -97,4 +97,4 @@ def wpg_val(num) -> str:
 
 def cmy_into_wpg(cmy : tuple) -> str:
 
-    return color_dict[f'{wpg_val(cmy[0])}{wpg_val(cmy[1])}{wpg_val(cmy[2])}']
+    return color_dict["%s%s%s" % (wpg_val(cmy[0]),wpg_val(cmy[1]),wpg_val(cmy[2]))]
