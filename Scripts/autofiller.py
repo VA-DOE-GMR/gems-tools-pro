@@ -280,6 +280,11 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         for m in aprx.listMaps():
             for lyr in m.listLayers():
                 if any(('MapUnitPolys' in lyr.name,'MapUnitOverlayPolys' in lyr.name,'MapUnitLines' in lyr.name,'MapUnitPoints' in lyr.name)) and not lyr.name.endswith('Anno') and not lyr.name.startswith('Anno'):
+                    # This prevents Symbology from feature classes and items outside from the geodatabase from being included.
+                    if not isinstance((lyr_source := lyr.dataSource),str):
+                        continue
+                    elif not lyr_source.replace('\\','/').startswith(arcpy.env.workspace):
+                        continue
                     sym = lyr.symbology
                     if getattr(sym.renderer,'groups',None) is None:
                         continue
