@@ -282,7 +282,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                 if any(('MapUnitPolys' in lyr.name,'MapUnitOverlayPolys' in lyr.name,'MapUnitLines' in lyr.name,'MapUnitPoints' in lyr.name)) and not lyr.name.endswith('Anno') and not lyr.name.startswith('Anno'):
                     sym = lyr.symbology
                     if getattr(sym.renderer,'groups',None) is None:
-                        break
+                        continue
                     for grp in sym.renderer.groups:
                         for itm in grp.items:
                             if not (unit_name := itm.label) in valid_units:
