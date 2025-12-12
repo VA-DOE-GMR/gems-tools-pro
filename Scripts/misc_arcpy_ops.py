@@ -11,9 +11,12 @@ def default_env_parameters() -> None:
     This sets optimal environment parameters.
     """
 
-    #Stops ArcGIS Pro from logging everything being done as it can waste time.
+    # These stop ArcGIS Pro from logging everything being done as it can waste time.
     arcpy.SetLogHistory(False)
     arcpy.SetLogMetadata(False)
+
+    # Automatic commits are not necessary.
+    arcpy.env.autoCommit = 0
 
     arcpy.env.processorType = "CPU"
     arcpy.env.parallelProcessingFactor = "75%"
