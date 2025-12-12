@@ -63,7 +63,7 @@ def explicit_typo_fix(item_path : str) -> None:
 
     # Annotations are highly contextual and cannot be modified via automation
     # with certainty.
-    if item_path.endswith('Anno'):
+    if item_path.endswith('Anno') or item_path[item_path.rfind('/')+1:].startswith('Anno'):
         return None
 
     excluded_fields = {'created_user','last_edited_user','GeoMaterial','Notes','Definition'}
