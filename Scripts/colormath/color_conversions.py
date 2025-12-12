@@ -535,7 +535,7 @@ def XYZ_to_RGB(cobj, target_rgb, *args, **kwargs):
     # V
     nonlinear_channels = {}
     if target_rgb == sRGBColor:
-        for channel in ["r", "g", "b"]:
+        for channel in "rgb":
             v = linear_channels[channel]
             if v <= 0.0031308:
                 nonlinear_channels[channel] = v * 12.92
@@ -546,7 +546,7 @@ def XYZ_to_RGB(cobj, target_rgb, *args, **kwargs):
             a, b = 1.0993, 0.0181
         else:
             a, b = 1.099, 0.018
-        for channel in ["r", "g", "b"]:
+        for channel in "rgb":
             v = linear_channels[channel]
             if v < b:
                 nonlinear_channels[channel] = v * 4.5
@@ -554,7 +554,7 @@ def XYZ_to_RGB(cobj, target_rgb, *args, **kwargs):
                 nonlinear_channels[channel] = a * math.pow(v, 0.45) - (a - 1)
     else:
         # If it's not sRGB...
-        for channel in ["r", "g", "b"]:
+        for channel in "rgb":
             v = linear_channels[channel]
             nonlinear_channels[channel] = math.pow(v, 1 / target_rgb.rgb_gamma)
 
@@ -575,8 +575,8 @@ def RGB_to_XYZ(cobj, target_illuminant=None, *args, **kwargs):
     linear_channels = {}
 
     if isinstance(cobj, sRGBColor):
-        for channel in ["r", "g", "b"]:
-            V = getattr(cobj, "rgb_" + channel)
+        for channel in "rgb":
+            V = getattr(cobj, f"rgb_{channel}")
             if V <= 0.04045:
                 linear_channels[channel] = V / 12.92
             else:
@@ -586,8 +586,8 @@ def RGB_to_XYZ(cobj, target_illuminant=None, *args, **kwargs):
             a, b, c = 1.0993, 0.0181, 0.081697877417347  # noqa
         else:
             a, b, c = 1.099, 0.018, 0.08124794403514049  # noqa
-        for channel in ["r", "g", "b"]:
-            V = getattr(cobj, "rgb_" + channel)
+        for channel in "rgb":
+            V = getattr(cobj, f"rgb_{channel}")
             if V <= c:
                 linear_channels[channel] = V / 4.5
             else:
@@ -596,8 +596,8 @@ def RGB_to_XYZ(cobj, target_illuminant=None, *args, **kwargs):
         # If it's not sRGB...
         gamma = cobj.rgb_gamma
 
-        for channel in ["r", "g", "b"]:
-            V = getattr(cobj, "rgb_" + channel)
+        for channel in "rgb":
+            V = getattr(cobj, f"rgb_{channel}")
             linear_channels[channel] = math.pow(V, gamma)
 
     # Apply an RGB working space matrix to the XYZ values (matrix mul).
