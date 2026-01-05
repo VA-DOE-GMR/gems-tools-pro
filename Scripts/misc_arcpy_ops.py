@@ -463,26 +463,46 @@ def enforceLabels(feature_item : str) -> None:
                         cursor.updateRow(row)
 
         case 'OrientationPoints':
-            with arcpy.da.UpdateCursor(feature_item,('Inclination','Symbol','Label')) as cursor:
+            with arcpy.da.UpdateCursor(feature_item,('Inclination','Symbol','Label','Type')) as cursor:
                 for row in cursor:
                     update_row = False
                     if row[1] == 'hidden':
                         if not row[2] is None:
                             row[2] = None
                             update_row = True
+                    elif not row[3] is None:
+                        if row[3].startswith('horizontal'):
+                            if not row[2] is None:
+                                row[2] = None:
+                                update_row = True
+                            if row[0] != 0:
+                                row[0] = 0:
+                                update_row = True
+                        elif row[3].startswith('vertical'):
+                            if not row[2] is None:
+                                row[2] = None
+                                update_row = True
+                            if row[0] != 90:
+                                row[0] = 90
+                                update_row = True
+                        elif not row[0] is None:
+                            try:
+                                if (new_str := str(int(row[0]))) != row[2]:
+                                    row[2] = new_str
+                                    update_row = True
+                            except ValueError:
+                                pass
+                        elif not row[2] is None:
+                            try:
+                                row[0] = int(row[2])
+                                update_row = True
+                            except ValueError:
+                                pass
                     elif not row[0] is None:
                         try:
                             if (new_str := str(int(row[0]))) != row[2]:
                                 row[2] = new_str
                                 update_row = True
-                        except ValueError:
-                            pass
-                    elif not row[2] is None:
-                        try:
-                            row[0] = int(row[2])
-                            update_row = True
-                        except ValueError:
-                            pass
                     if update_row:
                         cursor.updateRow(row)
         case _:
