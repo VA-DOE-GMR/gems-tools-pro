@@ -499,10 +499,22 @@ def enforceLabels(feature_item : str) -> None:
                             except ValueError:
                                 pass
                     elif not row[0] is None:
+                        if int(row[0]) >= 0:
+                            try:
+                                if (new_str := str(int(row[0]))) != row[2]:
+                                    row[2] = new_str
+                                    update_row = True
+                            except ValueError:
+                                pass
+                        elif not row[2] is None:
+                            row[2] = None
+                            update_row = True
+                    elif not row[2] is None:
                         try:
-                            if (new_str := str(int(row[0]))) != row[2]:
-                                row[2] = new_str
-                                update_row = True
+                            row[0] = int(row[0])
+                            update_row = True
+                        except ValueError:
+                            pass
                     if update_row:
                         cursor.updateRow(row)
         case _:
