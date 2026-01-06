@@ -463,58 +463,82 @@ def enforceLabels(feature_item : str) -> None:
                         cursor.updateRow(row)
 
         case 'OrientationPoints':
-            with arcpy.da.UpdateCursor(feature_item,('Inclination','Symbol','Label','Type')) as cursor:
+            orp_exception_nums = {0,90}
+            with arcpy.da.UpdateCursor(feature_item,('Type','Inclination','Symbol','Label')) as cursor:
                 for row in cursor:
                     update_row = False
-                    if row[1] == 'hidden':
-                        if not row[2] is None:
+                    if row[2] == 'hidden':
+                        if not row[3] is None:
                             row[2] = None
                             update_row = True
-                    elif not row[3] is None:
-                        if row[3].startswith('horizontal'):
-                            if not row[2] is None:
-                                row[2] = None:
-                                update_row = True
-                            if row[0] != 0:
-                                row[0] = 0:
-                                update_row = True
-                        elif row[3].startswith('vertical'):
-                            if not row[2] is None:
-                                row[2] = None
-                                update_row = True
-                            if row[0] != 90:
-                                row[0] = 90
-                                update_row = True
-                        elif not row[0] is None:
-                            try:
-                                if (new_str := str(int(row[0]))) != row[2]:
-                                    row[2] = new_str
-                                    update_row = True
-                            except ValueError:
-                                pass
-                        elif not row[2] is None:
-                            try:
-                                row[0] = int(row[2])
-                                update_row = True
-                            except ValueError:
-                                pass
                     elif not row[0] is None:
-                        if int(row[0]) >= 0:
-                            try:
-                                if (new_str := str(int(row[0]))) != row[2]:
-                                    row[2] = new_str
+                        if row[0].startswith('horizontal'):
+                            if row[1] != 0:
+                                row[1] = 0
+                                update_row = True
+                            if not row[3] is None:
+                                row[3] = None
+                                update_row = True
+                        elif row[0].startswith('vertical'):
+                            if row[1] != 90:
+                                row[1] = 90
+                                update_row = True
+                            if not row[3] is None:
+                                row[3] = None
+                                update_row = True
+                        else:
+                            if not row[1] is None:
+                                if row[1] in orp_exception_nums:
+                                    if not row[3] is None:
+                                        row[3] = None
+                                        update_row = True
+                                elif row[1] > 0:
+                                    if (new_str := str(int(row[1]))) != row[3]:
+                                        row[3] = new_str
+                                        update_row = True
+                                elif not row[3] is None:
+                                    row[3] = None
                                     update_row = True
-                            except ValueError:
-                                pass
-                        elif not row[2] is None:
-                            row[2] = None
-                            update_row = True
-                    elif not row[2] is None:
-                        try:
-                            row[0] = int(row[0])
-                            update_row = True
-                        except ValueError:
-                            pass
+                            elif not row[3] is None:
+                                if row[3].isdigit():
+                                    if (int_val := int(row[3])) in orp_exception_nums:
+                                        row[1] = int_val
+                                        row[3] = None
+                                        update_row = True
+                                    elif int_val > 0:
+                                        row[1] = int_val
+                                        update_row = True
+                                    else:
+                                        row[1] = int_val
+                                        row[3] = None
+                                        update_row = True
+                    else:
+                        if not row[1] is None:
+                            if row[1] in orp_exception_nums:
+                                if not row[3] is None:
+                                    row[3] = None
+                                    update_row = True
+                            elif row[1] > 0:
+                                if (new_str := str(int(row[1]))) != row[3]:
+                                    row[3] = new_str
+                                    update_row = True
+                            elif not row[3] is None:
+                                row[3] = None
+                                update_row = True
+                        elif not row[3] is None:
+                            if row[3].isdigit():
+                                if (int_val := int(row[3])) in orp_exception_nums:
+                                    row[1] = int_val
+                                    row[3] = None
+                                    update_row = True
+                                elif int_val > 0:
+                                    row[1] = int_val
+                                    update_row = True
+                                else:
+                                    row[1] = int_val
+                                    row[3] = None
+                                    update_row = True
+
                     if update_row:
                         cursor.updateRow(row)
         case _:
