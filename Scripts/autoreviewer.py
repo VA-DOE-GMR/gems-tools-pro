@@ -769,7 +769,7 @@ def autoreview_GeMS(gdb_path : str, excel_path : str) -> None:
                 item = f'{dataset}/{fc}'
                 arcpy.AddMessage(f'\n{item}')
                 ori_points = {}
-                for row in arcpy.da.SearchCursor(item,('OID@','Azimuth','Inclination','Label','MapUnit')):
+                arcpy.da.SearchCursor(item,('OID@','Azimuth','Inclination','Label','MapUnit','Symbol')):
                     ori_points[(oid := int(row[0]))] = []
                     if not row[1] is None:
                         ori_points[oid].append(float(row[1]))
@@ -784,6 +784,7 @@ def autoreview_GeMS(gdb_path : str, excel_path : str) -> None:
                     else:
                         ori_points[oid].append(None)
                     ori_points[oid].append(row[4])
+                    ori_points[oid].append(row[5])
                 outside_range_azimuth = {}
                 outside_range_inclination = {}
                 not_matching_incl_label = {}
@@ -792,13 +793,16 @@ def autoreview_GeMS(gdb_path : str, excel_path : str) -> None:
                         if ori_points[oid][0] < 0 or ori_points[oid][0] > 360:
                             outside_range_azimuth[oid] = ori_points[oid][0]
                     if not ori_points[oid][1] is None:
-                        if ori_points[oid][1] < 0 or ori_points[oid][1] > 90:
+                        if ori_points[oid][1] < -90 or ori_points[oid][1] > 90:
                             outside_range_inclination[oid] = ori_points[oid][1]
+                    elif ori_points[oid][1] is None and not ori_points[oid][1] in (0,90):
+                        outside_range_inclination[oid] = ori_points[oid][1]
                     if not None in (ori_points[oid][1],ori_points[oid][2]):
-                        if ori_points[oid][1] != ori_points[oid][2]:
+                        if not ori_points[oid][1] < 0 and not ori_points[oid][1] in (0,90) and ori_points[oid][1] != ori_points[oid][2]:
                             not_matching_incl_label[oid] = (ori_points[oid][1],ori_points[oid][2])
-                    elif (ori_points[oid][1] is None and not ori_points[oid][2] is None) or (not ori_points[oid][1] is None and ori_points[oid][2] is None):
-                        not_matching_incl_label[oid] = (ori_points[oid][1],ori_points[oid][2])
+                    elif not ori_points[oid][4] == 'hidden' and not ori_points[oid][1] in (0,90):
+                        if (ori_points[oid][1] is None and not ori_points[oid][2] is None) or (not ori_points[oid][1] is None and ori_points[oid][2] is None):
+                            not_matching_incl_label[oid] = (ori_points[oid][1],ori_points[oid][2])
                 if (num_oids := len((oids := tuple(outside_range_azimuth.keys())))):
                     arcpy.AddMessage('\nThe following points have Azimuth values outside the range 0-360:\n\nOID|Invalid Value\n')
                     for oid in oids:
@@ -1062,3 +1066,4 @@ def autoreview_GeMS(gdb_path : str, excel_path : str) -> None:
 
 
 autoreview_GeMS(gdb_path,excel_path)
+
