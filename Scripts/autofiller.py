@@ -260,7 +260,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
     # which have an explicit symbol used for them.
     if enable_process[1] == 'true':
 
-        arcpy.AddMessage("Obtaining Symbology data from MapUnitPolys and MapUnitOverlayPolys and applying them to DescriptionOfMapUnits table...")
+        arcpy.AddMessage("Obtaining Symbology data from MapUnitPolys, MapUnitOverlayPolys, MapUnitLines, and/or MapUnitPoints and applying them to DescriptionOfMapUnits table...")
 
         # This prevents a glitch concerning Symbology of a feature class still having information on deleted symbology that can transpire. Cause is undetermined.
         valid_units = set()
@@ -380,7 +380,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         if len(dups):
             for item in tuple(dups):
                 # There should not be a case where two map units are given the same color designation/symbology.
-                arcpy.AddError(f'{item} has more than one color symbol designated for the same MapUnit between two polygon feature classes.')
+                arcpy.AddWarning(f'{item} has more than one color symbol designated for the same MapUnit between two feature classes.')
                 rgb_mapunits.pop(item)
                 cmy_mapunits.pop(item)
 
