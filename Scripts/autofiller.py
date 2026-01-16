@@ -76,12 +76,14 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
     arcpy.AddMessage(arcpy.env.workspace)
 
-    # Also determines if ArcGIS Pro can take advantage of Nvidia GPU(s).
     default_env_parameters()
 
+    # This deselects any currently selected features in ArcGIS Pro as
+    # any selected features can and will affect how this tool behaves.
     deselectFeatures((datasets := tuple(arcpy.ListDatasets())))
 
-    # For simplification purposes.
+    # For simplification purposes, this ensures that edits explicitly
+    # start and end as well as saves being committed.
     class GeMS_Editor:
 
         def __init__(self):
@@ -127,6 +129,13 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
     edit.end_session()
 
     arcpy.AddMessage("Typos and invalid capitalizations have been rectified.\n\n")
+
+    # For one reason or another, the data of certain features in feature classes may
+    # become errored/corrupted/damaged. The following process attempts to repair
+    # these problematic features. If not, they are deleted. The reason this is the
+    # only instance of the GeMS Auto-Filler and Fixer tool explicitly deleting
+    # features is that features unable to be repaired have zero reason to be kept
+    # and can present problems working with the feature class(es) in question.
 
     if enable_process[0] == 'true':
 
@@ -371,7 +380,6 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         del valid_units
         try: del color_space
         except NameError: pass
-        
 
         if len(dups):
             for item in tuple(dups):
