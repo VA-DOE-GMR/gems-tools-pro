@@ -368,14 +368,10 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                             del unit_name
                     del sym
 
-        try:
-            del color_space
-        except NameError:
-            pass
-        try:
-            del valid_units
-        except NameError:
-            pass
+        del valid_units
+        try: del color_space
+        except NameError: pass
+        
 
         if len(dups):
             for item in tuple(dups):
