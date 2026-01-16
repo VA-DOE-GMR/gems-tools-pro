@@ -1,4 +1,3 @@
-[![GitHub tag (latest SemVer)](https://img.shields.io/github/v/release/DOI-USGS/gems-tools-pro)](https://github.com/DOI-USGS/gems-tools-pro/releases/latest)
 [![GitHub tag (latest SemVer)](https://img.shields.io/github/v/release/VA-DOE-GMR/gems-tools-pro)](https://github.com/VA-DOE-GMR/gems-tools-pro/releases/latest) 
 [![Wiki](https://img.shields.io/badge/-wiki-orange)](https://github.com/DOI-USGS/gems-tools-pro/wiki) 
 [![Discuss](https://img.shields.io/badge/-discuss-orange)](https://github.com/DOI-USGS/gems-tools-pro/discussions) 
@@ -21,6 +20,7 @@ GMR tools are written and maintained by Adam Link and Jennie Latane. Previous it
 ## [License](https://github.com/VA-DOE-GMR/gems-tools-pro/blob/GMR-changes/LICENSE.md)
 
 ## [Disclaimer](https://github.com/VA-DOE-GMR/gems-tools-pro/blob/GMR-changes/DISCLAIMER.md)
+
 
 
 
