@@ -14,12 +14,13 @@
 Download the latest release and add the atbx file to Pro to start using it. Be warned: the toolbox no longer has any of the main USGS gems-tools-pro scripts! Take a look at the [USGS repo](https://github.com/DOI-USGS/gems-tools-pro) for those. Please also note that these tools are currently designed for those with Virginia Energy.
 
 ## Acknowledgments
-GMR tools are written and maintained by Adam Link and Jennie Latane. Previous iterations of the toolbox contain contributions from the creators of USGS's gems-tools-pro.
+GMR tools are written and maintained by Adam J. Link and Jennie Latane. Previous iterations of the toolbox contain contributions from the creators of USGS's gems-tools-pro.
 
 
 ## [License](https://github.com/VA-DOE-GMR/gems-tools-pro/blob/GMR-changes/LICENSE.md)
 
 ## [Disclaimer](https://github.com/VA-DOE-GMR/gems-tools-pro/blob/GMR-changes/DISCLAIMER.md)
+
 
 
 
