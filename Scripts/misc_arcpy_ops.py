@@ -35,7 +35,7 @@ def deselectFeatures(datasets : tuple) -> None:
     return None
 
 # returning None indicates that is nothing of importance in that string.
-def fixFieldItemString(entry_string : str) -> Union[str,None]:
+def fixFieldItemString(entry_string : str, is_nullable_str : bool) -> Union[str,None]:
     # No String entry should have consecutive spaces.
     while entry_string.find('  ') != -1:
         entry_string = entry_string.replace('  ',' ')
@@ -44,7 +44,9 @@ def fixFieldItemString(entry_string : str) -> Union[str,None]:
     # No String entry should have two or more consecutive punctuation/special
     # characters.
     if entry_string == '':
-        return None
+        if is_nullable_str:
+            return None
+        return ''
     for double_punct in double_puncts:
         if double_punct in entry_string:
             while double_punct in entry_string:
@@ -68,7 +70,20 @@ def explicit_typo_fix(item_path : str) -> None:
 
     excluded_fields = {'created_user','last_edited_user','GeoMaterial','Notes','Definition'}
 
-    if len((fields := tuple([field.name for field in tuple(arcpy.ListFields(item_path,field_type='String')) if not field.name in excluded_fields and not field.name.endswith('_ID')]))):
+    fields = []
+    is_nullable = []
+
+    for field in tuple(arcpy.ListFields(item_path,field_type='String')):
+        if not field.name in excluded_fields and not field.name.endswith('_ID'):
+            fields.append(field.name)
+            if field.isNullable:
+                is_nullable.append(True)
+            else:
+                is_nullable.append(False)
+
+    is_nullable = tuple(is_nullable)
+
+    if len((fields := tuple(fields)):
 
         field_range = range(len(fields))
 
@@ -77,7 +92,7 @@ def explicit_typo_fix(item_path : str) -> None:
                 update_row = False
                 for n in field_range:
                     if not row[n] is None:
-                        if (new_str := fixFieldItemString(row[n])) != row[n]:
+                        if (new_str := fixFieldItemString(row[n],is_nullable[n])) != row[n]:
                             row[n] = new_str
                             update_row = True
                 if update_row:
