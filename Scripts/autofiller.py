@@ -634,6 +634,8 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
         if None in used_terms:
             used_terms.remove(None)
+        if '' in used_terms:
+            used_terms.remove('')
 
         logged_terms = []
         logged_def = []
@@ -960,7 +962,8 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                         if row_updated:
                             cursor.updateRow(row)
 
-            del row_updated
+            try: del row_updated
+            except NameError: pass
             arcpy.AddMessage("DataSources table successfully processed!\n\n")
 
         else:
