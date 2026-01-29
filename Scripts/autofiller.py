@@ -44,7 +44,7 @@ def gems_id_writer(item_path : str, item_name : str) -> None:
 
     return None
 
-def getOIDSelectionStr(oids, oid_name) -> Union[None,str]:
+def getOIDSelectionStr(oids : array, oid_name : str) -> Union[None,str]:
     if len(oids) >= 2:
         return f'{oid_name} IN ({",".join(oids)})'
     elif len(oids) == 1:
@@ -141,7 +141,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
         null_items = {None,0}
 
-        def getBrokenPoints(feature_item : str, oid_name : str):
+        def getBrokenPoints(feature_item : str, oid_name : str) -> array:
             oids = []
             for row in arcpy.da.SearchCursor(feature_item,(oid_name,'SHAPE@XY')):
                 if row[1] in null_items:
