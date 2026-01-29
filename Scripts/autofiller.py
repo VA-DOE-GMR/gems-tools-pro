@@ -157,6 +157,10 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         arcpy.AddMessage('Checking for features with invalid geometry...')
         for dataset in datasets:
             for fc in arcpy.ListFeatureClasses(feature_dataset=dataset):
+                if fc.endswith('Anno'):
+                    # Annotation features cannot be processed.
+                    continue
+                arcpy.AddMessage(f'Working on: {dataset}/{fc}...')
                 oid_name = None
                 for field in tuple(arcpy.ListFields((feature_item := f'{dataset}/{fc}'),field_type='OID')):
                     oid_name = field.name
@@ -261,7 +265,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         del null_items
         try: del select_str
         except NameError: pass
-        arcpy.AddMessage("Process successfully completed!\n")
+        arcpy.AddMessage("Process successfully completed!\n\n")
 
         del getBrokenPolylines ; del getBrokenPolygons
 
