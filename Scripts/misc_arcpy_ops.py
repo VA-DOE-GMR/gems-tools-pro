@@ -83,7 +83,7 @@ def explicit_typo_fix(item_path : str) -> None:
 
     is_nullable = tuple(is_nullable)
 
-    if len((fields := tuple(fields)):
+    if len((fields := tuple(fields))):
 
         field_range = range(len(fields))
 
@@ -479,12 +479,27 @@ def enforceLabels(feature_item : str) -> None:
 
         case 'OrientationPoints':
             orp_exception_nums = {0,90}
-            with arcpy.da.UpdateCursor(feature_item,('Type','Inclination','Symbol','Label')) as cursor:
+            # In this case, Azimuth is only adjusted to ensure it is within the inclusive range of 0 to 359. Azimuth of 360
+            # is considered the same as Azimuth of 0.
+            with arcpy.da.UpdateCursor(feature_item,('Type','Inclination','Symbol','Label','Azimuth')) as cursor:
                 for row in cursor:
                     update_row = False
+                    if not row[4] is None:
+                        if (int_val := int(row[4])) > 360:
+                            while int_val > 360:
+                                int_val -= 360
+                            if int_val == 360:
+                                int_val = 0
+                            row[4] = int_val
+                            update_row = True
+                        elif int_val < 0:
+                            while int_val < 0:
+                                int_val += 360
+                            row[4] = int_val
+                            update_row = True
                     if row[2] == 'hidden':
                         if not row[3] is None:
-                            row[2] = None
+                            row[3] = None
                             update_row = True
                     elif not row[0] is None:
                         if row[0].startswith('horizontal'):
