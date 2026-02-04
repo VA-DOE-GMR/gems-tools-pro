@@ -387,7 +387,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         if len(dups):
             for item in tuple(dups):
                 # There should not be a case where two map units are given the same color designation/symbology.
-                arcpy.AddWarning(f'{item} has more than one color symbol designated for the same MapUnit between two polygon feature classes.')
+                arcpy.AddWarning(f'{item} has more than one color symbol designated for the same MapUnit between two feature classes.')
                 rgb_mapunits.pop(item)
                 cmy_mapunits.pop(item)
 
