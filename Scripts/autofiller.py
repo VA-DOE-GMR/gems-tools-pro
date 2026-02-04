@@ -413,7 +413,8 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                         cmy_mapunits.pop(unit)
                         inconsistent_symbology.append((actual_mapunit,unit))
 
-            del actual_mapunit
+            try: del actual_mapunit
+            except NameError: pass
 
             if len((inconsistent_symbology := tuple(inconsistent_symbology))):
                 for item in inconsistent_symbology:
