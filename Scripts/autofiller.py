@@ -396,6 +396,8 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         if len(((units := tuple(rgb_mapunits.keys())))):
 
             # This accounts for Value and Label values in Symbology not being identical for a MapUnit.
+            inconsistent_symbology = []
+            
             for unit in units:
                 if not unit.isalnum():
                     actual_mapunit = valid_labels_dict[unit]
@@ -409,6 +411,15 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                         rgb_mapunits.pop(unit)
                         cmy_mapunits.pop(actual_mapunit)
                         cmy_mapunits.pop(unit)
+                        inconsistent_symbology.append((actual_mapunit,unit))
+
+            del actual_mapunit
+
+            if len((inconsistent_symbology := tuple(inconsistent_symbology))):
+                for item in inconsistent_symbology:
+                    arcpy.AddWarning(f"Inconsistent Symbology with: {item[0]}/{item[1]}")
+
+            del inconsistent_symbology
 
             units = tuple(rgb_mapunits.keys())
 
