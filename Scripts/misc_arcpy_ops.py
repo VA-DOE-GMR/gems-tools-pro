@@ -24,13 +24,14 @@ def default_env_parameters() -> None:
 
     return None
 
-# Used to prevent issues with running tools with features already selected in
-# ArcGIS Pro prior.
-def deselectFeatures(datasets : tuple) -> None:
+# Used to prevent issues with running tools with features and tables already
+# selected in ArcGIS Pro prior.
+def deselectObjects(datasets : tuple) -> None:
 
-    for dataset in datasets:
-        for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset)):
-            arcpy.management.SelectLayerByAttribute(f'{dataset}/{fc}','CLEAR_SELECTION')
+    aprx = arcpy.mp.ArcGISProject('CURRENT')
+
+    for m in aprx.listMaps():
+        m.clearSelection()
 
     return None
 
@@ -63,12 +64,7 @@ def explicit_typo_fix(item_path : str) -> None:
     feature classes and tables, excluding ones that should not be touched.
     '''
 
-    # Annotations are highly contextual and cannot be modified via automation
-    # with certainty.
-    if item_path.endswith('Anno') or item_path[item_path.rfind('/')+1:].startswith('Anno'):
-        return None
-
-    excluded_fields = {'created_user','last_edited_user','GeoMaterial','Notes','Definition'}
+    excluded_fields = {'created_user','last_edited_user','GeoMaterial','Notes','Definition','URL','Source','AreaFillPatternDescription'}
 
     fields = []
     is_nullable = []
@@ -166,7 +162,8 @@ def textEnforcing(entry_item : str) -> None:
                     if update_row:
                         cursor.updateRow(row)
         case 'DescriptionOfMapUnits':
-            with arcpy.da.UpdateCursor(entry_item,('HierarchyKey','AreaFillRGB','DescriptionSourceID','GeoMaterialConfidence')) as cursor:
+            sentence_puncts = '.?!'
+            with arcpy.da.UpdateCursor(entry_item,('HierarchyKey','AreaFillRGB','DescriptionSourceID','GeoMaterialConfidence','Description')) as cursor:
                 for row in cursor:
                     update_row = False
                     if not row[0] is None:
@@ -184,6 +181,14 @@ def textEnforcing(entry_item : str) -> None:
                     if not row[3] is None:
                         if (new_str := row[3].title()) != row[3]:
                             row[3] = new_str
+                            update_row = True
+                    if not row[4] is None:
+                        new_str = row[4].replace('\n','')
+                        new_str = new_str.strip()
+                        if not new_str[-1] in sentence_puncts:
+                            new_str = f'{new_str}.'
+                        if (new_str := new_str.replace('  ',' ')) != row[4]:
+                            row[4] = new_str
                             update_row = True
                     if update_row:
                         cursor.updateRow(row)
@@ -266,15 +271,6 @@ def textEnforcing(entry_item : str) -> None:
                             row[2] = new_str
                             update_row = True
                     if update_row:
-                        cursor.updateRow(row)
-        case 'MapUnitPointsAnno' | 'MapUnitOverlayPolysAnno' | 'MapUnitPolysAnno' | 'OrientationPointsAnno':
-            with arcpy.da.UpdateCursor(entry_item,('Angle',)) as cursor:
-                for row in cursor:
-                    if row[0] is None:
-                        row[0] = 0
-                        cursor.updateRow(row)
-                    elif row[0] != 0:
-                        row[0] = 0
                         cursor.updateRow(row)
         case 'MapUnitPolys' | 'OverlayPolys':
             with arcpy.da.UpdateCursor(entry_item,('IdentityConfidence','DataSourceID','Notes')) as cursor:

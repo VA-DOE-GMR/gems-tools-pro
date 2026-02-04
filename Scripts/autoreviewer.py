@@ -1,5 +1,5 @@
 import arcpy,sys,os
-from misc_arcpy_ops import default_env_parameters,deselectFeatures
+from misc_arcpy_ops import default_env_parameters,deselectObjects
 from misc_ops import ref_info,makeListIntArray
 from os.path import exists
 from array import array
@@ -27,11 +27,15 @@ def autoreview_GeMS(gdb_path : str, excel_path : str) -> None:
     current_workspace = current_workspace.replace('\\','/')
     arcpy.env.workspace = gdb_path.replace('\\','/')
 
-    arcpy.AddMessage(arcpy.env.workspace)
+    arcpy.AddMessage(f'Path to GeMS geodatabase currently being processed: {arcpy.env.workspace}\n\n')
 
     default_env_parameters()
 
-    deselectFeatures((datasets := tuple(arcpy.ListDatasets())))
+    # This ensures that no features are selected before running the tool.
+    # Selected features will disrupt how this tool functions. It will not cause
+    # any errors or abnormal behavior; however, it will cause certain things to
+    # be skipped or completely ignored by the tool.
+    deselectObjects((datasets := tuple(arcpy.ListDatasets())))
 
     arcpy.AddMessage("\nChecking Glossary table...")
 
@@ -157,10 +161,10 @@ def autoreview_GeMS(gdb_path : str, excel_path : str) -> None:
                 else:
                     wb = load_workbook(excel_path,data_only=True)
                     for sheet in wb.sheetnames:
-                        if 'Anomoly_or_Error_Terms' == sheet:
+                        if 'Anomaly_or_Error_Terms' == sheet:
                             wb.remove(wb[sheet])
                             break
-                ws = wb.create_sheet('Anomoly_or_Error_Terms')
+                ws = wb.create_sheet('Anomaly_or_Error_Terms')
                 ws['A1'] = 'Glossary Term'
                 for n in range(num_terms):
                     ws[f'A{n+2}'] = unadded_terms[n]
@@ -769,7 +773,7 @@ def autoreview_GeMS(gdb_path : str, excel_path : str) -> None:
                 item = f'{dataset}/{fc}'
                 arcpy.AddMessage(f'\n{item}')
                 ori_points = {}
-                arcpy.da.SearchCursor(item,('OID@','Azimuth','Inclination','Label','MapUnit','Symbol')):
+                for row in arcpy.da.SearchCursor(item,('OID@','Azimuth','Inclination','Label','MapUnit','Symbol')):
                     ori_points[(oid := int(row[0]))] = []
                     if not row[1] is None:
                         ori_points[oid].append(float(row[1]))
@@ -1066,4 +1070,3 @@ def autoreview_GeMS(gdb_path : str, excel_path : str) -> None:
 
 
 autoreview_GeMS(gdb_path,excel_path)
-

@@ -1,9 +1,8 @@
 import arcpy,os,sys
 from typing import Union
 from array import array
-from misc_arcpy_ops import default_env_parameters,explicit_typo_fix,textEnforcing,enforceLabels,deselectFeatures
-from misc_ops import ref_info
-from misc_ops import makeListIntArray
+from misc_arcpy_ops import default_env_parameters,explicit_typo_fix,textEnforcing,enforceLabels,deselectObjects
+from misc_ops import ref_info,makeListIntArray
 from re import sub as re_sub
 from fundamentals import hsv_into_rgb,hsl_into_rgb,lab_into_rgb,cmy_into_rgb,rgb_into_cmy,cmy_into_wpg
 
@@ -74,16 +73,17 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
     current_workspace = current_workspace.replace('\\','/')
     arcpy.env.workspace = gdb_path.replace('\\','/')
 
-    arcpy.AddMessage(arcpy.env.workspace)
+    arcpy.AddMessage(f'Path to GeMS geodatabase currently being processed: {arcpy.env.workspace}\n\n')
 
     default_env_parameters()
 
-    # This deselects any currently selected features in ArcGIS Pro as
-    # any selected features can and will affect how this tool behaves.
-    deselectFeatures((datasets := tuple(arcpy.ListDatasets())))
+    # This ensures that no features are selected before running the tool.
+    # Selected features will disrupt how this tool functions. It will not cause
+    # any errors or abnormal behavior; however, it will cause certain things to
+    # be skipped or completely ignored by the tool.
+    deselectObjects((datasets := tuple(arcpy.ListDatasets())))
 
-    # For simplification purposes, this ensures that edits explicitly
-    # start and end as well as saves being committed.
+    # For simplification purposes.
     class GeMS_Editor:
 
         def __init__(self):
@@ -106,12 +106,14 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
     # well as applying fixes and changes that will be required to be done
     # regardless.
 
+    annotation_items = {fc for dataset in datasets for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset,feature_type='Annotation'))}
+
     edit = GeMS_Editor()
 
     arcpy.AddMessage("Fixing explicit typos in feature classes and tables as well as invalid capitalizations...")
 
     # feature classes
-    for item in (feature_items := tuple([f'{dataset}/{fc}' for dataset in datasets for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset))])):
+    for item in (feature_items := tuple([f'{dataset}/{fc}' for dataset in datasets for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset)) if not fc in annotation_items])):
         explicit_typo_fix(item)
     # tables
     for item in ('Glossary','DescriptionOfMapUnits'):
@@ -129,13 +131,6 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
     edit.end_session()
 
     arcpy.AddMessage("Typos and invalid capitalizations have been rectified.\n\n")
-
-    # For one reason or another, the data of certain features in feature classes may
-    # become errored/corrupted/damaged. The following process attempts to repair
-    # these problematic features. If not, they are deleted. The reason this is the
-    # only instance of the GeMS Auto-Filler and Fixer tool explicitly deleting
-    # features is that features unable to be repaired have zero reason to be kept
-    # and can present problems working with the feature class(es) in question.
 
     if enable_process[0] == 'true':
 
@@ -157,8 +152,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         arcpy.AddMessage('Checking for features with invalid geometry...')
         for dataset in datasets:
             for fc in arcpy.ListFeatureClasses(feature_dataset=dataset):
-                if fc.endswith('Anno'):
-                    # Annotation features cannot be processed.
+                if fc in annotation_items:
                     continue
                 arcpy.AddMessage(f'Working on: {dataset}/{fc}...')
                 oid_name = None
@@ -253,6 +247,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                                 arcpy.management.RepairGeometry(arcpy.management.SelectLayerByAttribute('temp_polygon_lyr','NEW_SELECTION',select_str),'DELETE_NULL','OGC')
                             except Exception:
                                 edit.end_session()
+                                # This should never happen.
                                 arcpy.AddError(f"UNABLE TO DELETE NULL GEOMETRY ITEMS FROM {feature_item} FOR UNKNOWN REASONS!!!\n\n")
                                 continue
                         edit.end_session()
@@ -273,17 +268,21 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
     # which have an explicit symbol used for them.
     if enable_process[1] == 'true':
 
-        arcpy.AddMessage("Obtaining Symbology data from MapUnitPolys, MapUnitOverlayPolys, MapUnitLines, and/or MapUnitPoints and applying them to DescriptionOfMapUnits table...")
+        arcpy.AddMessage("\nObtaining Symbology data from MapUnitPolys and MapUnitOverlayPolys and applying them to DescriptionOfMapUnits table...")
 
         # This prevents a glitch concerning Symbology of a feature class still having information on deleted symbology that can transpire. Cause is undetermined.
         valid_units = set()
+        valid_labels_dict = {}
         for dataset in datasets:
             for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset)):
-                if 'MapUnit' in fc and not fc.endswith('Anno') and not fc.startswith('Anno'):
-                    for row in arcpy.da.SearchCursor(f'{arcpy.env.workspace}/{dataset}/{fc}','MapUnit'):
+                if 'MapUnit' in fc and not fc in annotation_items:
+                    for row in arcpy.da.SearchCursor(f'{arcpy.env.workspace}/{dataset}/{fc}',('MapUnit','Label')):
                         if not row[0] is None:
-                            if row[0].replace(' ','') != '':
-                                valid_units.add(row[0])
+                            valid_units.add(row[0])
+                            if not row[1] is None and row[0] != row[1]:
+                                valid_labels_dict[row[1]] = row[0]
+
+        valid_labels = set(valid_labels_dict.keys())
 
         aprx = arcpy.mp.ArcGISProject('CURRENT')
         rgb_mapunits = {}
@@ -292,7 +291,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
         for m in aprx.listMaps():
             for lyr in m.listLayers():
-                if any(('MapUnitPolys' in lyr.name,'MapUnitOverlayPolys' in lyr.name,'MapUnitLines' in lyr.name,'MapUnitPoints' in lyr.name)) and not lyr.name.endswith('Anno') and not lyr.name.startswith('Anno'):
+                if 'MapUnit' in lyr.name and not lyr.name in annotation_items:
                     # This prevents Symbology from feature classes and items outside from the geodatabase from being included.
                     if not isinstance((lyr_source := lyr.dataSource),str):
                         continue
@@ -303,7 +302,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                         continue
                     for grp in sym.renderer.groups:
                         for itm in grp.items:
-                            if not (unit_name := itm.label) in valid_units:
+                            if not (unit_name := itm.label) in valid_units and not unit_name in valid_labels:
                                 continue
                             try:
                                 color_space = tuple(itm.symbol.color.keys())
@@ -311,7 +310,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                                 continue
                             if len(color_space) == 1:
                                 color_space = color_space[0]
-                                if not unit_name in rgb_mapunits.keys():
+                                if not unit_name in rgb_mapunits.keys() or unit_name in valid_labels:
                                     match color_space:
                                         case 'RGB':
                                             rgb_vals = tuple(itm.symbol.color[color_space])
@@ -381,20 +380,37 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                             del unit_name
                     del sym
 
-        del valid_units
         try: del color_space
         except NameError: pass
+        del valid_units
 
         if len(dups):
             for item in tuple(dups):
                 # There should not be a case where two map units are given the same color designation/symbology.
-                arcpy.AddWarning(f'{item} has more than one color symbol designated for the same MapUnit between two feature classes.')
+                arcpy.AddWarning(f'{item} has more than one color symbol designated for the same MapUnit between two polygon feature classes.')
                 rgb_mapunits.pop(item)
                 cmy_mapunits.pop(item)
 
         del dups ; del aprx
 
         if len(((units := tuple(rgb_mapunits.keys())))):
+
+            # This accounts for Value and Label values in Symbology not being identical for a MapUnit.
+            for unit in units:
+                if not unit.isalnum():
+                    actual_mapunit = valid_labels_dict[unit]
+                    if not actual_mapunit in rgb_mapunits.keys():
+                        rgb_mapunits[actual_mapunit] = rgb_mapunits[unit]
+                        cmy_mapunits[actual_mapunit] = cmy_mapunits[unit]
+                        rgb_mapunits.pop(unit)
+                        cmy_mapunits.pop(unit)
+                    else:
+                        rgb_mapunits.pop(actual_mapunit)
+                        rgb_mapunits.pop(unit)
+                        cmy_mapunits.pop(actual_mapunit)
+                        cmy_mapunits.pop(unit)
+
+            units = tuple(rgb_mapunits.keys())
 
             symbol_mapunits = dict()
 
@@ -442,7 +458,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
         for dataset in datasets:
             for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset)):
-                if fc.endswith('Anno') or fc.startswith('Anno'):
+                if fc in annotation_items:
                     continue
                 if 'MapUnit' in fc:
                     with arcpy.da.UpdateCursor(f'{arcpy.env.workspace}/{dataset}/{fc}',('MapUnit','Label','Symbol')) as cursor:
@@ -965,7 +981,6 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                                         row_updated = True
                         if row_updated:
                             cursor.updateRow(row)
-
             try: del row_updated
             except NameError: pass
             arcpy.AddMessage("DataSources table successfully processed!\n\n")
@@ -984,7 +999,6 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
         del naloe_zelmatitum
 
-
     # Enforce labels
     if enable_process[6] == 'true':
 
@@ -993,7 +1007,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         edit = GeMS_Editor()
 
         for dataset in datasets:
-            for fc in tuple([item for item in arcpy.ListFeatureClasses(feature_dataset=dataset) if not item.endswith('Anno') and not item.startswith('Anno')]):
+            for fc in tuple([item for item in arcpy.ListFeatureClasses(feature_dataset=dataset) if not item in annotation_items]):
                 if 'Label' in (fc_fields := tuple([field.name for field in arcpy.ListFields(f'{dataset}/{fc}',field_type='String')])):
                     enforceLabels(f'{dataset}/{fc}')
 
@@ -1022,7 +1036,6 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
 
     arcpy.env.workspace = current_workspace[:]
-
 
     if enable_process[8] == 'true':
         arcpy.AddMessage('Compacting GeMS geodatabase...')
