@@ -14,10 +14,15 @@ Download the latest release and add the atbx file to Pro to start using it. Be w
 ## Acknowledgments
 GMR tools are written and maintained by Adam J. Link and Jennie Latane. Previous iterations of the toolbox contain contributions from the creators of USGS's gems-tools-pro.
 
+GMR-GeMS-Tools is regularly updated, improved, fixed, and tweaked by Adam J. Link.
+
 
 ## [License](https://github.com/VA-DOE-GMR/gems-tools-pro/blob/GMR-changes/LICENSE.md)
 
+This tool is licensed under Creative Commons CC0 1.0 Universal.
+
 ## [Disclaimer](https://github.com/VA-DOE-GMR/gems-tools-pro/blob/GMR-changes/DISCLAIMER.md)
+
 
 
 
