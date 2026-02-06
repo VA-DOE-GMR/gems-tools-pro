@@ -477,23 +477,60 @@ def enforceLabels(feature_item : str) -> None:
             orp_exception_nums = {0,90}
             # In this case, Azimuth is only adjusted to ensure it is within the inclusive range of 0 to 359. Azimuth of 360
             # is considered the same as Azimuth of 0.
+            # with arcpy.da.UpdateCursor(feature_item,('Type','Azimuth','Inclination','Symbol','Label')) as cursor:
+            #     for row in cursor:
+            #         update_row = False
+            #         if not row[1] is None:
+            #             if (int_val := int(row[1])) > 360:
+            #                 while int_val > 360:
+            #                     int_val -= 360
+            #                 if int_val == 360:
+            #                     int_val = 0
+            #                 row[1] = int_val
+            #                 update_row = True
+            #             elif int_val < 0:
+            #                 while _int_val < 0:
+            #                     int_val += 360
+            #                 row[1] = int_val
+            #                 update_row = True
+            #         elif not row[0] is None:
+            #             if row[0].startswith('horizontal'):
+            #                 if not row[2] is None:
+            #                     row[2]
+            #         if update_row:
+            #             cursor.updateRow(row)
             with arcpy.da.UpdateCursor(feature_item,('Type','Inclination','Symbol','Label','Azimuth')) as cursor:
                 for row in cursor:
                     update_row = False
-                    if not row[4] is None:
-                        if (int_val := int(row[4])) > 360:
+                    if row[2] == 'hidden':
+                        if row[4] is None:
+                            row[4] = -90
+                            update_row = True
+                        elif (int_val := int(row[4])) > 360:
                             while int_val > 360:
                                 int_val -= 360
                             if int_val == 360:
                                 int_val = 0
                             row[4] = int_val
                             update_row = True
-                        elif int_val < 0:
-                            while int_val < 0:
+                        elif int_val < -360:
+                            while int_val < -360:
                                 int_val += 360
                             row[4] = int_val
                             update_row = True
-                    if row[2] == 'hidden':
+                        if row[1] is None:
+                            row[1] = -90
+                            update_row = True
+                        elif (int_val := int(row[1])) > 90:
+                            while int_val > 90:
+                                int_val -= 90
+                            row[1] = int_val
+                            update_row = True
+                        elif int_val < -90:
+                            while int_val < -90:
+                                int_val += 90
+                            row[1] = int_val
+                            update_row = True
                         if not row[3] is None:
                             row[3] = None
                             update_row = True
@@ -505,12 +542,18 @@ def enforceLabels(feature_item : str) -> None:
                             if not row[3] is None:
                                 row[3] = None
                                 update_row = True
+                            if row[4] != 0:
+                                row[4] = 0
+                                update_row = True
                         elif row[0].startswith('vertical'):
                             if row[1] != 90:
                                 row[1] = 90
                                 update_row = True
                             if not row[3] is None:
                                 row[3] = None
+                                update_row = True
+                            if row[4] != 0:
+                                row[4] = 0
                                 update_row = True
                         else:
                             if not row[1] is None:
@@ -538,6 +581,36 @@ def enforceLabels(feature_item : str) -> None:
                                         row[1] = int_val
                                         row[3] = None
                                         update_row = True
+                            else:
+                                if row[4] is None:
+                                    row[4] = 0
+                                    row[3] = -90
+                                    update_row = True
+                                elif (int_val := int(row[4])) > 360:
+                                    while int_val > 360:
+                                        int_val -= 360
+                                    if int_val == 360:
+                                        int_val = 0
+                                    row[4] = int_val
+                                    update_row = True
+                                elif int_val < -360:
+                                    while int_val < -360:
+                                        int_val += 360
+                                    row[4] = int_val
+                                    update_row = True
+                                if row[1] is None:
+                                    row[1] = -90
+                                    update_row = True
+                                elif (int_val := row[1]) > 90:
+                                    while int_val > 90:
+                                        int_val -= 90
+                                    row[1] = int_val
+                                    update_row = True
+                                elif int_val < -90:
+                                    while int_val < -90:
+                                        int_val += 90
+                                    row[1] = int_val
+                                    update_row = True
                     else:
                         if not row[1] is None:
                             if row[1] in orp_exception_nums:
@@ -556,6 +629,10 @@ def enforceLabels(feature_item : str) -> None:
                                 if (int_val := int(row[3])) in orp_exception_nums:
                                     row[1] = int_val
                                     row[3] = None
+                                    if row[4] != 0:
+                                        row[4] = 0
+                                    else:
+                                        row[4] = 90
                                     update_row = True
                                 elif int_val > 0:
                                     row[1] = int_val
@@ -564,7 +641,36 @@ def enforceLabels(feature_item : str) -> None:
                                     row[1] = int_val
                                     row[3] = None
                                     update_row = True
-
+                        else:
+                            if row[4] is None:
+                                row[4] = 0
+                                row[3] = -90
+                                update_row = True
+                            elif (int_val := int(row[4])) > 360:
+                                while int_val > 360:
+                                    int_val -= 360
+                                if int_val == 360:
+                                    int_val = 0
+                                row[4] = int_val
+                                update_row = True
+                            elif int_val < -360:
+                                while int_val < -360:
+                                    int_val += 360
+                                row[4] = int_val
+                                update_row = True
+                            if row[1] is None:
+                                row[1] = -90
+                                update_row = True
+                            elif (int_val := row[1]) > 90:
+                                while int_val > 90:
+                                    int_val -= 90
+                                row[1] = int_val
+                                update_row = True
+                            elif int_val < -90:
+                                while int_val < -90:
+                                    int_val += 90
+                                row[1] = int_val
+                                update_row = True
                     if update_row:
                         cursor.updateRow(row)
         case _:
