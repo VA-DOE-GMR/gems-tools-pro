@@ -1047,12 +1047,12 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         edit.end_session()
         arcpy.AddMessage("Edits successfully saved!\n\n")
 
-
-    arcpy.env.workspace = current_workspace[:]
-
+    
     if enable_process[8] == 'true':
         arcpy.AddMessage('Compacting GeMS geodatabase...')
         arcpy.management.Compact(arcpy.env.workspace)
         arcpy.AddMessage("GeMS geodatabase has been successfully compacted!")
+
+    arcpy.env.workspace = current_workspace[:]
 
 autofill_GeMS(gdb_path,enable_process)
