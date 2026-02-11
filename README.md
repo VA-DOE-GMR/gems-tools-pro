@@ -1,5 +1,5 @@
 [![GitHub tag (latest SemVer)](https://img.shields.io/github/v/release/VA-DOE-GMR/GMR-GeMS-Tools)](https://github.com/VA-DOE-GMR/GMR-GeMS-Tools/releases/latest) 
-[![Wiki](https://img.shields.io/badge/-wiki-orange)](https://github.com/DOI-USGS/gems-tools-pro/wiki)
+[![Wiki](https://img.shields.io/badge/-wiki-orange)](https://github.com/DOI-USGS/GMR-GeMS-Tools/wiki)
 [![HTMLdoc](https://img.shields.io/badge/-online_gems_documentation-brihtgreen)](https://scgeology.github.io/GeMS/index.html)
 [![gems on USGS](https://img.shields.io/badge/-NGMDB_GeMS-brightgreen)](https://ngmdb.usgs.gov/Info/standards/GeMS/)
 
@@ -22,6 +22,7 @@ If you have any inquiries about GeMS Auto-Fixer and Filler and/or GeMS AutoRevie
 This tool is licensed under Creative Commons CC0 1.0 Universal.
 
 ## [Disclaimer](https://github.com/VA-DOE-GMR/gems-tools-pro/blob/GMR-changes/DISCLAIMER.md)
+
 
 
 
