@@ -20,7 +20,7 @@ class Referential_Information:
             fc_name = fc_name[2:]
             while fc_name[:2].isupper():
                 prefix = f'{prefix}{fc_name[0]}'
-                fc_name = fc_name[:1]
+                fc_name = fc_name[1:]
             if fc_name in self.idRootDict.keys():
                 return f'{prefix}{self.idRootDict[fc_name]}'
             else:
