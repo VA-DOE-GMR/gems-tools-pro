@@ -16,11 +16,16 @@ class Referential_Information:
         """
 
         if fc_name.startswith("CS"):
-            if fc_name[3:] in self.idRootDict.keys():
-                return f'{fc_name[:3]}{self.idRootDict[fc_name[3:]]}'
+            prefix = 'CS'
+            fc_name = fc_name[2:]
+            while fc_name[:2].isupper():
+                prefix = f'{prefix}{fc_name[0]}'
+                fc_name = fc_name[:1]
+            if fc_name in self.idRootDict.keys():
+                return f'{prefix}{self.idRootDict[fc_name]}'
             else:
                 self.x_id_count += 1
-                return f'{fc_name[:3]}X{self.x_id_count}X'
+                return f'{prefix}X{self.x_id_count}X'
         else:
             if fc_name in self.idRootDict.keys():
                 return self.idRootDict[fc_name]
