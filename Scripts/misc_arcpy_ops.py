@@ -107,7 +107,7 @@ def textEnforcing(entry_item : str) -> None:
 
     if ref_name.startswith('CS'):
         ref_name = ref_name[2:]
-        while ref_name[0].isupper() and ref_name[1].isupper():
+        while ref_name[:2].isupper():
             ref_name = ref_name[1:]
 
     match ref_name:
