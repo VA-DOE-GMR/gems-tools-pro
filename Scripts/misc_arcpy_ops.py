@@ -570,10 +570,9 @@ def enforceLabels(feature_item : str) -> None:
                                 row[1] = 0
                                 update_row = True
                             if not row[2] is None:
-                                if row[2] in orp_exception_nums:
-                                    if not row[4] is None:
-                                        row[4] = None
-                                        update_row = True
+                                if row[2] in orp_exception_nums and not row[4] is None:
+                                    row[4] = None
+                                    update_row = True
                                 else:
                                     row[4] = str(int(row[2]))
                                     update_row = True
@@ -589,9 +588,8 @@ def enforceLabels(feature_item : str) -> None:
                         elif not row[2] is None:
                             row[1] = 0
                             update_row = True
-                            if row[2] in orp_exception_nums:
-                                if not row[4] is None:
-                                    row[4] = None
+                            if row[2] in orp_exception_nums and not row[4] is None:
+                                row[4] = None
                             else:
                                 row[4] = str(int(row[2]))
                         elif not (label_str := row[4]) is None:
@@ -623,10 +621,9 @@ def enforceLabels(feature_item : str) -> None:
                             row[1] = 0
                             update_row = True
                         if not row[2] is None:
-                            if row[2] in orp_exception_nums:
-                                if not row[4] is None:
-                                    row[4] = None
-                                    update_row = True
+                            if row[2] in orp_exception_nums and not row[4] is None:
+                                row[4] = None
+                                update_row = True
                             else:
                                 row[4] = str(int(row[2]))
                                 update_row = True
@@ -642,9 +639,8 @@ def enforceLabels(feature_item : str) -> None:
                     elif not row[2] is None:
                         row[1] = 0
                         update_row = True
-                        if row[2] in orp_exception_nums:
-                            if not row[4] is None:
-                                row[4] = None
+                        if row[2] in orp_exception_nums and not row[4] is None:
+                            row[4] = None
                         else:
                             row[4] = str(int(row[2]))
                     elif not (label_str := row[4]) is None:
