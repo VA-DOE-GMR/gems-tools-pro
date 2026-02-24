@@ -255,13 +255,29 @@ def autoreview_GeMS(gdb_path : str, excel_path : str) -> None:
 
     found_dasids = set()
     used_dasids = set()
-    valid_fields = {'DataSourceID','LocationSourceID','OrientationSourceID'}
+    valid_fields = ('DataSourceID','LocationSourceID','OrientationSourceID')
 
     for dataset in datasets:
         for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset)):
-            if 'DataSourceID' in tuple([field.name for field in arcpy.ListFields(f'{dataset}/{fc}')]):
-                for row in arcpy.da.SearchCursor(f'{dataset}/{fc}','DataSourceID'):
+            dasid_field_name = []
+            fields = {field.name for field in arcpy.ListFields(f'{dataset}/{fc}')}
+            for valid_field in valid_fields:
+                if valid_field in fields:
+                    dasid_field_name.append(valid_field)
+                    break
+            if (num_fields := len(dasid_field_name)) == 1:
+                for row in arcpy.da.SearchCursor(f'{dataset}/{fc}',dasid_field_name[0]):
                     found_dasids.add(row[0])
+            elif num_fields > 1:
+                field_range = range(num_fields)
+                for row in arcpy.da.SearchCursor(f'{dataset}/{fc}',dasid_field_name):
+                    for n in field_range:
+                        found_dasids.add(row[n])
+
+    try: del fields ; del dasid_field_name ; del num_fields
+    except NameError: pass
+    try: del field_range
+    except NameError: pass
 
     for row in arcpy.da.SearchCursor(f'{arcpy.env.workspace}/DescriptionOfMapUnits','DescriptionSourceID'):
         found_dasids.add(row[0])
@@ -280,7 +296,7 @@ def autoreview_GeMS(gdb_path : str, excel_path : str) -> None:
     for item in (found_dasids := tuple(found_dasids)):
         if 'DAS' in item:
             if '|' in item:
-                temp_item = item[:]
+                temp_item = item.replace(' ','')
                 while '|' in temp_item:
                     if temp_item.startswith('DAS'):
                         used_dasids.add(temp_item[:temp_item.find('|')])
