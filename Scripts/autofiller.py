@@ -146,7 +146,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
             for fc in arcpy.ListFeatureClasses(feature_dataset=dataset):
                 if fc in annotation_items:
                     continue
-                arcpy.AddMessage(f'Working on: {dataset}/{fc}...')
+                arcpy.AddMessage(f'Checking: {dataset}/{fc}...')
                 oid_name = None
                 for field in tuple(arcpy.ListFields((feature_item := f'{dataset}/{fc}'),field_type='OID')):
                     oid_name = field.name
