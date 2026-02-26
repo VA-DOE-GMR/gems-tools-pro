@@ -2,7 +2,7 @@ import arcpy,os,sys
 from typing import Union
 from array import array
 from misc_arcpy_ops import default_env_parameters,explicit_typo_fix,textEnforcing,enforceLabels,deselectObjects
-from misc_ops import ref_info,makeListIntArray
+from misc_ops import ref_info,getOIDSelectionStr
 from re import sub as re_sub
 from fundamentals import hsv_into_rgb,hsl_into_rgb,lab_into_rgb,cmy_into_rgb,rgb_into_cmy,cmy_into_wpg
 
@@ -42,14 +42,6 @@ def gems_id_writer(item_path : str, item_name : str) -> None:
                 cursor.updateRow(row)
 
     return None
-
-def getOIDSelectionStr(oids : array, oid_name : str) -> Union[None,str]:
-    if len(oids) >= 2:
-        return f'{oid_name} IN ({",".join(oids)})'
-    elif len(oids) == 1:
-        return f'{oid_name} = {oids[0]}'
-    else:
-        return None
 
 # This is for the scenario where an entry exists in the Glossary table where the
 # Term field is <Null>.
@@ -140,14 +132,14 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
             oids = []
             for row in arcpy.da.SearchCursor(feature_item,(oid_name,'SHAPE@XY')):
                 if row[1] in null_items:
-                    oids.append(row[0])
+                    oids.append(str(row[0]))
                 elif row[1][0] == 0 and row[1][1] == 0:
-                    oids.append(row[0])
-            return makeListIntArray(oids)
+                    oids.append(str(row[0]))
+            return tuple(oids)
 
-        getBrokenPolylines = lambda feature_item, oid_name : makeListIntArray([row[0] for row in arcpy.da.SearchCursor(feature_item,(oid_name,'SHAPE@LENGTH')) if row[1] in null_items])
+        getBrokenPolylines = lambda feature_item, oid_name : tuple([str(row[0]) for row in arcpy.da.SearchCursor(feature_item,(oid_name,'SHAPE@LENGTH')) if row[1] in null_items])
 
-        getBrokenPolygons = lambda feature_item, oid_name : makeListIntArray([row[0] for row in arcpy.da.SearchCursor(feature_item,(oid_name,'SHAPE@LENGTH','SHAPE@AREA')) if row[1] in null_items and row[2] in null_items])
+        getBrokenPolygons = lambda feature_item, oid_name : tuple([str(row[0]) for row in arcpy.da.SearchCursor(feature_item,(oid_name,'SHAPE@LENGTH','SHAPE@AREA')) if row[1] in null_items and row[2] in null_items])
 
         arcpy.AddMessage('Checking for features with invalid geometry...')
         for dataset in datasets:
@@ -1028,6 +1020,9 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         edit.end_session()
         arcpy.AddMessage("Edits successfully saved!\n\n")
 
+
+    # Merge Identical and Adjacent Polygons
+
     # Autofill _ID fields
     # This should always be the last or second last thing done if enabled and is enabled by default.
     if enable_process[7] == 'true':
@@ -1047,7 +1042,6 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         edit.end_session()
         arcpy.AddMessage("Edits successfully saved!\n\n")
 
-    
     if enable_process[8] == 'true':
         arcpy.AddMessage('Compacting GeMS geodatabase...')
         arcpy.management.Compact(arcpy.env.workspace)
