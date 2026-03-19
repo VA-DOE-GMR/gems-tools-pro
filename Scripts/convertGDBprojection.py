@@ -1,4 +1,6 @@
 import arcpy,sys
+from os import remove
+from os.path import exists
 from misc_arcpy_ops import default_env_parameters,deselectObjects
 
 # sys.argv[0] is reserved
@@ -51,6 +53,12 @@ def generateNewGDBProject(gdb_path : str, neo_gdb_location : str, neo_gdb_name :
     arcpy.AddMessage("Geodatabase with new projection successfully generated.")
 
     arcpy.env.workspace = current_workspace[:]
+
+    if exists('temp_str_12345.txt'):
+        try:
+            remove('temp_str_12345.txt')
+        except Exception:
+            pass
 
     return None
 
