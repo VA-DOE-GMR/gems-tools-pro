@@ -466,22 +466,35 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                 if fc in annotation_items:
                     continue
                 if 'MapUnit' in fc:
-                    with arcpy.da.UpdateCursor(f'{arcpy.env.workspace}/{dataset}/{fc}',('MapUnit','Label','Symbol')) as cursor:
-                        for row in cursor:
-                            update_row = False
-                            if row[0] in mapunits:
-                                if (new_str := pairs[row[0]][0]) != row[1]:
-                                    update_row = True
-                                    row[1] = new_str
-                                if (new_str := pairs[row[0]][1]) != row[2]:
-                                    update_row = True
-                                    row[2] = new_str
-                                del new_str
+                    if not 'MapUnitLines' in fc:
+                        with arcpy.da.UpdateCursor(f'{arcpy.env.workspace}/{dataset}/{fc}',('MapUnit','Label','Symbol')) as cursor:
+                            for row in cursor:
+                                update_row = False
+                                if row[0] in mapunits:
+                                    if (new_str := pairs[row[0]][0]) != row[1]:
+                                        update_row = True
+                                        row[1] = new_str
+                                    if (new_str := pairs[row[0]][1]) != row[2]:
+                                        update_row = True
+                                        row[2] = new_str
+                                    if update_row:
+                                        cursor.updateRow(row)
+                    else:
+                        with arcpy.da.UpdateCursor(f'{arcpy.env.workspace}/{dataset}/{fc}',('MapUnit','Label')) as cursor:
+                            for row in cursor:
+                                update_row = False
+                                if row[0] in mapunits:
+                                    if (new_str := pairs[row[0]][0]) != row[1]:
+                                        update_row = True
+                                        row[1] = new_str
                                 if update_row:
                                     cursor.updateRow(row)
-                            del update_row
 
         del mapunits ; del pairs
+        try: del new_str
+        except NameError: pass
+        try: del update_row
+        except NameError: pass
 
         arcpy.AddMessage("Changes successfully applied.\n\nSaving edits...")
 
