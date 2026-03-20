@@ -480,15 +480,32 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                                     if update_row:
                                         cursor.updateRow(row)
                     else:
-                        with arcpy.da.UpdateCursor(f'{arcpy.env.workspace}/{dataset}/{fc}',('MapUnit','Label')) as cursor:
-                            for row in cursor:
-                                update_row = False
-                                if row[0] in mapunits:
-                                    if (new_str := pairs[row[0]][0]) != row[1]:
-                                        update_row = True
-                                        row[1] = new_str
-                                if update_row:
-                                    cursor.updateRow(row)
+                        if 'Notes' in [field.name for field in arcpy.ListFields(f'{arcpy.env.workspace}/{dataset}/{fc}',field_type="String")]:
+                            with arcpy.da.UpdateCursor(f'{arcpy.env.workspace}/{dataset}/{fc}',('MapUnit','Label','Notes')) as cursor:
+                                for row in cursor:
+                                    update_row = False
+                                    if row[0] in mapunits:
+                                        if (new_str := pairs[row[0]][0]) != row[1]:
+                                            update_row = True
+                                            row[1] = new_str
+                                        if row[2] is None:
+                                            update_row = True
+                                            row[2] = pairs[row[0]][1]
+                                        elif not (new_str := f"|{pairs[row[0]][1]}") in row[2]:
+                                            update_row = True
+                                            row[2] = f'{row[2]}{new_str}'
+                                    if update_row:
+                                        cursor.updateRow(row)
+                        else:
+                            with arcpy.da.UpdateCursor(f'{arcpy.env.workspace}/{dataset}/{fc}',('MapUnit','Label')) as cursor:
+                                for row in cursor:
+                                    update_row = False
+                                    if row[0] in mapunits:
+                                        if (new_str := pairs[row[0]][0]) != row[1]:
+                                            update_row = True
+                                            row[1] = new_str
+                                    if update_row:
+                                        cursor.updateRow(row)
 
         del mapunits ; del pairs
         try: del new_str
