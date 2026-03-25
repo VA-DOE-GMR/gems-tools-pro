@@ -21,7 +21,11 @@ def generateNewGDBProject(gdb_path : str, neo_gdb_location : str, neo_gdb_name :
     current_workspace = arcpy.env.workspace[:]
     arcpy.env.workspace = gdb_path[:]
 
-    deselectObjects((datasets := tuple(arcpy.ListDatasets())))
+    # This ensures that no features are selected before running the tool.
+    # Selected features will disrupt how this tool functions. It will not cause
+    # any errors or abnormal behavior; however, it will cause certain things to
+    # be skipped or completely ignored by the tool.
+    deselectObjects((datasets := tuple([item for item in arcpy.ListDatasets() if item == 'GeologicMap' or 'CrossSection' in item])))
 
     tables = tuple(arcpy.ListTables())
 
