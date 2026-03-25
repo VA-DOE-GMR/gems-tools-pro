@@ -35,7 +35,7 @@ def autoreview_GeMS(gdb_path : str, excel_path : str) -> None:
     # Selected features will disrupt how this tool functions. It will not cause
     # any errors or abnormal behavior; however, it will cause certain things to
     # be skipped or completely ignored by the tool.
-    deselectObjects((datasets := tuple(arcpy.ListDatasets())))
+    deselectObjects((datasets := tuple([item for item in arcpy.ListDatasets() if item == 'GeologicMap' or 'CrossSection' in item])))
 
     arcpy.AddMessage("\nChecking Glossary table...")
 
