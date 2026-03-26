@@ -113,18 +113,18 @@ def geofixer_GeMS(gdb_path : str, enable_process : tuple) -> None:
 
         null_items = {None,0}
 
-        def getBrokenPoints(feature_item : str, oid_name : str) -> array:
+        def getBrokenPoints(feature_item : str) -> array:
             oids = []
-            for row in arcpy.da.SearchCursor(feature_item,(oid_name,'SHAPE@XY')):
+            for row in arcpy.da.SearchCursor(feature_item,('OID@','SHAPE@XY')):
                 if row[1] in null_items:
                     oids.append(str(row[0]))
                 elif row[1][0] == 0 and row[1][1] == 0:
                     oids.append(str(row[0]))
             return tuple(oids)
 
-        getBrokenPolylines = lambda feature_item, oid_name : tuple([str(row[0]) for row in arcpy.da.SearchCursor(feature_item,(oid_name,'SHAPE@LENGTH')) if row[1] in null_items])
+        getBrokenPolylines = lambda feature_item : tuple([str(row[0]) for row in arcpy.da.SearchCursor(feature_item,('OID@','SHAPE@LENGTH')) if row[1] in null_items])
 
-        getBrokenPolygons = lambda feature_item, oid_name : tuple([str(row[0]) for row in arcpy.da.SearchCursor(feature_item,(oid_name,'SHAPE@LENGTH','SHAPE@AREA')) if row[1] in null_items and row[2] in null_items])
+        getBrokenPolygons = lambda feature_item : tuple([str(row[0]) for row in arcpy.da.SearchCursor(feature_item,('OID@','SHAPE@LENGTH','SHAPE@AREA')) if row[1] in null_items and row[2] in null_items])
 
         arcpy.AddMessage('Checking for features with invalid geometry...')
         for dataset in datasets:
@@ -138,7 +138,7 @@ def geofixer_GeMS(gdb_path : str, enable_process : tuple) -> None:
                     break
                 match arcpy.da.Describe(feature_item)['shapeType']:
                     case 'Point':
-                        if not isinstance((select_str := getOIDSelectionStr((broken_oids := getBrokenPoints(feature_item,oid_name)),oid_name)),str):
+                        if not isinstance((select_str := getOIDSelectionStr((broken_oids := getBrokenPoints(feature_item)),oid_name)),str):
                             del select_str
                             continue
                         arcpy.AddMessage(f"\n{feature_item} has features with potentially corrupted geometry!\nAttempting to repair geometry...")
@@ -146,13 +146,13 @@ def geofixer_GeMS(gdb_path : str, enable_process : tuple) -> None:
                         edit = GeMS_Editor()
                         arcpy.management.RepairGeometry(arcpy.management.SelectLayerByAttribute('temp_pnt_lyr','NEW_SELECTION',select_str),'KEEP_NULL','ESRI')
                         edit.end_session()
-                        if not isinstance((select_str := getOIDSelectionStr((broken_oids := getBrokenPoints(feature_item,oid_name)),oid_name)),str):
+                        if not isinstance((select_str := getOIDSelectionStr((broken_oids := getBrokenPoints(feature_item)),oid_name)),str):
                             arcpy.AddMessage(f'Repair of {feature_item} was successful!\n')
                             continue
                         edit = GeMS_Editor()
                         arcpy.management.RepairGeometry(arcpy.management.SelectLayerByAttribute('temp_pnt_lyr','NEW_SELECTION',select_str),'KEEP_NULL','OGC')
                         edit.end_session()
-                        if not isinstance((select_str := getOIDSelectionStr((broken_oids := getBrokenPoints(feature_item,oid_name)),oid_name)),str):
+                        if not isinstance((select_str := getOIDSelectionStr((broken_oids := getBrokenPoints(feature_item)),oid_name)),str):
                             arcpy.AddMessage(f'Repair of {feature_item} was successful!\n')
                             continue
                         arcpy.AddMessage(f'Unable to repair the geometry corrupted items!\nDeleting problematic items from {feature_item}...')
@@ -169,20 +169,20 @@ def geofixer_GeMS(gdb_path : str, enable_process : tuple) -> None:
                         edit.end_session()
                         arcpy.AddMessage("Problematic items have been successfully removed!\n")
                     case 'Polyline':
-                        if not isinstance((select_str := getOIDSelectionStr((broken_oids := getBrokenPolylines(feature_item,oid_name)),oid_name)),str):
+                        if not isinstance((select_str := getOIDSelectionStr((broken_oids := getBrokenPolylines(feature_item)),oid_name)),str):
                             continue
                         arcpy.AddMessage(f"\n{feature_item} has features with potentially corrupted geometry!\nAttempting to repair geometry...")
                         arcpy.management.MakeFeatureLayer(f'{arcpy.env.workspace}/{feature_item}','temp_line_lyr')
                         edit = GeMS_Editor()
                         arcpy.management.RepairGeometry(arcpy.management.SelectLayerByAttribute('temp_line_lyr','NEW_SELECTION',select_str),'KEEP_NULL','ESRI')
                         edit.end_session()
-                        if not isinstance((select_str := getOIDSelectionStr((broken_oids := getBrokenPolylines(feature_item,oid_name)),oid_name)),str):
+                        if not isinstance((select_str := getOIDSelectionStr((broken_oids := getBrokenPolylines(feature_item)),oid_name)),str):
                             arcpy.AddMessage(f'Repair of {feature_item} was successful!\n')
                             continue
                         edit = GeMS_Editor()
                         arcpy.management.RepairGeometry(arcpy.management.SelectLayerByAttribute('temp_line_lyr','NEW_SELECTION',select_str),'KEEP_NULL','OGC')
                         edit.end_session()
-                        if not isinstance((select_str := getOIDSelectionStr((broken_oids := getBrokenPolylines(feature_item,oid_name)),oid_name)),str):
+                        if not isinstance((select_str := getOIDSelectionStr((broken_oids := getBrokenPolylines(feature_item)),oid_name)),str):
                             arcpy.AddMessage(f'Repair of {feature_item} was successful!\n')
                             continue
                         arcpy.AddMessage(f'Unable to repair the geometry corrupted items!\nDeleting problematic items from {feature_item}...')
@@ -199,20 +199,20 @@ def geofixer_GeMS(gdb_path : str, enable_process : tuple) -> None:
                         edit.end_session()
                         arcpy.AddMessage("Problematic items have been successfully removed!\n")
                     case 'Polygon':
-                        if not isinstance((select_str := getOIDSelectionStr((broken_oids := getBrokenPolygons(feature_item,oid_name)),oid_name)),str):
+                        if not isinstance((select_str := getOIDSelectionStr((broken_oids := getBrokenPolygons(feature_item)),oid_name)),str):
                             continue
                         arcpy.AddMessage(f"\n{feature_item} has features with potentially corrupted geometry!\nAttempting to repair geometry...")
                         arcpy.management.MakeFeatureLayer(f'{arcpy.env.workspace}/{feature_item}','temp_polygon_lyr')
                         edit = GeMS_Editor()
                         arcpy.management.RepairGeometry(arcpy.management.SelectLayerByAttribute('temp_polygon_lyr','NEW_SELECTION',select_str),'KEEP_NULL','ESRI')
                         edit.end_session()
-                        if not isinstance((select_str := getOIDSelectionStr((broken_oids := getBrokenPolygons(feature_item,oid_name)),oid_name)),str):
+                        if not isinstance((select_str := getOIDSelectionStr((broken_oids := getBrokenPolygons(feature_item)),oid_name)),str):
                             arcpy.AddMessage(f'Repair of {feature_item} was successful!\n')
                             continue
                         edit = GeMS_Editor()
                         arcpy.management.RepairGeometry(arcpy.management.SelectLayerByAttribute('temp_polygon_lyr','NEW_SELECTION',select_str),'KEEP_NULL','OGC')
                         edit.end_session()
-                        if not isinstance((select_str := getOIDSelectionStr((broken_oids := getBrokenPolygons(feature_item,oid_name)),oid_name)),str):
+                        if not isinstance((select_str := getOIDSelectionStr((broken_oids := getBrokenPolygons(feature_item)),oid_name)),str):
                             arcpy.AddMessage(f'Repair of {feature_item} was successful!\n')
                             continue
                         arcpy.AddMessage(f'Unable to repair the geometry corrupted items!\nDeleting problematic items from {feature_item}...')
