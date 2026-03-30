@@ -150,8 +150,6 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         potentially_locked_symbols = set()
         dups = set()
 
-        #Surficial Stylx being ignored for some reason???
-
         for m in aprx.listMaps():
             for lyr in m.listLayers():
                 if 'MapUnit' in lyr.name and not lyr.name in annotation_items:
