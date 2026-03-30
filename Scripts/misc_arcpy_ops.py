@@ -163,7 +163,7 @@ def textEnforcing(entry_item : str) -> None:
                         cursor.updateRow(row)
         case 'DescriptionOfMapUnits':
             sentence_puncts = '.?!'
-            with arcpy.da.UpdateCursor(entry_item,('HierarchyKey','AreaFillRGB','DescriptionSourceID','GeoMaterialConfidence','Description')) as cursor:
+            with arcpy.da.UpdateCursor(entry_item,('HierarchyKey','AreaFillRGB','DescriptionSourceID','GeoMaterialConfidence','Description','Name','FullName','Age')) as cursor:
                 for row in cursor:
                     update_row = False
                     if not row[0] is None:
@@ -190,6 +190,24 @@ def textEnforcing(entry_item : str) -> None:
                         if (new_str := new_str.replace('  ',' ')) != row[4]:
                             row[4] = new_str
                             update_row = True
+                    if not row[5] is None:
+                        new_str = row[5]
+                        while new_str[-1] in unaccepted_puncts:
+                            new_str = new_str[:-1]
+                        row[5] = new_str
+                        update_row = True
+                    if not row[6] is None:
+                        new_str = row[6]
+                        while new_str[-1] in unaccepted_puncts:
+                            new_str = new_str[:-1]
+                        row[6] = new_str
+                        update_row = True
+                    if not row[7] is None:
+                        new_str = row[7]
+                        while new_str[-1] in unaccepted_puncts:
+                            new_str = new_str[:-1]
+                        row[7] = new_str
+                        update_row = True
                     if update_row:
                         cursor.updateRow(row)
         case 'GenericPoints':
