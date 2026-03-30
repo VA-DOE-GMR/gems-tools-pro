@@ -305,14 +305,16 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                         if row[0] in units:
                             if (new_str := symbol_mapunits[row[0]]) != row[1]:
                                 update_row = True
-                                row[1] = new_str[:]
+                                row[1] = new_str
                             if (new_str := rgb_mapunits[row[0]]) != row[2]:
                                 update_row = True
-                                row[2] = new_str[:]
-                            del new_str
+                                row[2] = new_str
                         if update_row:
                             cursor.updateRow(row)
                     del update_row
+
+            try: del new_str
+            except NameError: pass
 
             del symbol_mapunits
 
@@ -459,14 +461,18 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                             for row in cursor:
                                 if row[0] in oids:
                                     if row[1] != (new_str := matched[row[0]]):
-                                        row[1] = new_str[:]
+                                        row[1] = new_str
                                         cursor.updateRow(row)
-                                    del new_str
+                        try: del new_str
+                        except NameError: pass
                         del oids
                     del matched ; del fields ; del feature_item
             else:
                 num_cross_sections += 1
                 hasCrossSection = True
+
+        try: del feature_item
+        except NameError: pass
 
         del mapunits
 
@@ -526,9 +532,10 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                                 for row in cursor:
                                     if row[0] in oids:
                                         if row[1] != (new_str := matched[row[0]]):
-                                            row[1] = new_str[:]
+                                            row[1] = new_str
                                             cursor.updateRow(row)
-                                        del new_str
+                            try: del new_str
+                            except NameError: pass
                             del oids
                         del matched ; del fields ; del feature_item
                     del mapunits
@@ -559,9 +566,11 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                     for row in arcpy.da.SearchCursor(feature_item,fields):
                         for n in field_range:
                             used_terms.add(row[n])
-                    del field_range
 
-        del fields ; del valid_fields ; del feature_item
+        try: del feature_item ; del fields ; del field_range
+        except NameError: pass
+
+        del valid_fields
 
         for row in arcpy.da.SearchCursor(f'{arcpy.env.workspace}/DescriptionOfMapUnits',['ParagraphStyle','GeoMaterialConfidence']):
             used_terms.add(row[0])
@@ -609,7 +618,6 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                         update_row = True
                         row[0] = new_str
                         logged_terms.append(new_str)
-                        del new_str
                     else:
                         logged_terms.append(row[0])
                     logged_def.append(row[1])
@@ -617,6 +625,8 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                 if update_row:
                     cursor.updateRow(row)
 
+        try: del new_str
+        except NameError: pass
         try: del update_row
         except NameError: pass
         try: del blanks
@@ -753,9 +763,11 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                     for row in arcpy.da.SearchCursor(feature_item,dasid_fields):
                         for n in field_range:
                             found_items.add(row[n])
-                    del field_range
 
-        del dasid_fields ; del valid_fields ; del feature_item
+        try: del feature_item ; del dasid_fields ; del field_range
+        except NameError: pass
+
+        del valid_fields
 
         for row in arcpy.da.SearchCursor(f'{arcpy.env.workspace}/DescriptionOfMapUnits','DescriptionSourceID'):
             found_items.add(row[0])
@@ -1008,7 +1020,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                         for row in cursor:
                             update_row = False
                             if row[0] is None:
-                                row[0] = dasid_placeholder[:]
+                                row[0] = dasid_placeholder
                                 update_row = True
                             if update_row:
                                 cursor.updateRow(row)
@@ -1017,7 +1029,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
             for row in cursor:
                 update_row = False
                 if row[0] is None:
-                    row[0] = dasid_placeholder[:]
+                    row[0] = dasid_placeholder
                     update_row = True
                 if update_row:
                     cursor.updateRow(row)
@@ -1046,7 +1058,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                         for row in cursor:
                             update_row = False
                             if row[0] is None:
-                                row[0] = lsid_placeholder[:]
+                                row[0] = lsid_placeholder
                                 update_row = True
                             if update_row:
                                 cursor.updateRow(row)
@@ -1075,7 +1087,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                         for row in cursor:
                             update_row = False
                             if row[0] is None:
-                                row[0] = osid_placeholder[:]
+                                row[0] = osid_placeholder
                                 update_row = True
                             if update_row:
                                 cursor.updateRow(row)
