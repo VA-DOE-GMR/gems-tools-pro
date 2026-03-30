@@ -73,7 +73,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
     # Selected features will disrupt how this tool functions. It will not cause
     # any errors or abnormal behavior; however, it will cause certain things to
     # be skipped or completely ignored by the tool.
-    deselectObjects((datasets := tuple([item for item in arcpy.ListDatasets() if item == 'GeologicMap' or 'CrossSection' in item])))
+    deselectObjects((datasets := tuple(arcpy.ListDatasets())))
 
     # For simplification purposes.
     class GeMS_Editor:
@@ -147,7 +147,10 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
         aprx = arcpy.mp.ArcGISProject('CURRENT')
         rgb_mapunits = {}
         cmy_mapunits = {}
+        potentially_locked_symbols = set()
         dups = set()
+
+        #Surficial Stylx being ignored for some reason???
 
         for m in aprx.listMaps():
             for lyr in m.listLayers():
@@ -167,6 +170,7 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                             try:
                                 color_space = tuple(itm.symbol.color.keys())
                             except Exception:
+                                potentially_locked_symbols.add(unit_name)
                                 continue
                             if len(color_space) == 1:
                                 color_space = color_space[0]
@@ -251,6 +255,8 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                 rgb_mapunits.pop(item)
                 cmy_mapunits.pop(item)
 
+
+
         del dups ; del aprx
 
         if len(((units := tuple(rgb_mapunits.keys())))):
@@ -314,7 +320,15 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
 
             edit.end_session()
 
-        del rgb_mapunits ; del cmy_mapunits
+        for symbol in tuple(potentially_locked_symbols):
+            if not symbol in rgb_mapunits.keys():
+                arcpy.AddWarning(f'Symbology information for "{symbol}" cannot be obtained and applied to the DescriptionOfMapUnits table due to layer color being locked.')
+                give_symbology_fix_instructions = True
+
+        if len(potentially_locked_symbols):
+            arcpy.AddMessage("\n\n!!!\nLocks can be removed from symbols by going into Symbology, clicking on the previous mentioned symbol(s), selecting Properties, selecting the Layers sub-tab, and then clicking on the icon on the far right of the 'Solid fill' layer. When hovering over said icon, it should now display the message: Layer colors are unlocked. If not, click it.\n!!!\n\n")
+
+        del rgb_mapunits ; del cmy_mapunits ; del potentially_locked_symbols
 
         arcpy.AddMessage("Process successfully completed.\n\n")
 
