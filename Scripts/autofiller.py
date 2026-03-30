@@ -252,8 +252,8 @@ def autofill_GeMS(gdb_path : str, enable_process : tuple):
                 arcpy.AddWarning(f'{item} has more than one color symbol designated for the same MapUnit between two feature classes.')
                 rgb_mapunits.pop(item)
                 cmy_mapunits.pop(item)
-
-
+                if item in potentially_locked_symbols:
+                    potentially_locked_symbols.remove(item)
 
         del dups ; del aprx
 
