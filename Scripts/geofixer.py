@@ -280,8 +280,9 @@ def geofixer_GeMS(gdb_path : str, enable_process : tuple) -> None:
                         edit = GeMS_Editor()
                         gems_id_writer(f'{dataset}/{fc}',fc)
                         edit.end_session()
-                    del count ; del counter
 
+        try: del count ; del counter
+        except NameError: pass
         try: del multipart_oids ; del oid_name
         except NameError: pass
         try: del partnum
