@@ -1,9 +1,11 @@
+# modules included with ArcGIS Pro
 import arcpy,os,sys
 from typing import Union
 from array import array
+from re import sub as re_sub
+# custom modules
 from misc_arcpy_ops import default_env_parameters,explicit_typo_fix,textEnforcing,enforceLabels,deselectObjects
 from misc_ops import ref_info,getOIDSelectionStr
-from re import sub as re_sub
 from fundamentals import hsv_into_rgb,hsl_into_rgb,lab_into_rgb,cmy_into_rgb,rgb_into_cmy,cmy_into_wpg
 
 # sys.argv[0] is reserved.
