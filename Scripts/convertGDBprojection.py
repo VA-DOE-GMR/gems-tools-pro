@@ -1,6 +1,8 @@
+# modules included with ArcGIS Pro
 import arcpy,sys
 from os import remove
 from os.path import exists
+# custom module
 from misc_arcpy_ops import default_env_parameters,deselectObjects
 
 # sys.argv[0] is reserved
