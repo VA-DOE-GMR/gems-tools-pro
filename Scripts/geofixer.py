@@ -1,6 +1,8 @@
+# modules included with ArcGIS Pro
 import arcpy,sys
 from typing import Union
 from array import array
+# custom modules
 from misc_arcpy_ops import default_env_parameters,explicit_typo_fix,textEnforcing,deselectObjects
 from misc_ops import ref_info,makeListIntArray,getOIDSelectionStr
 
