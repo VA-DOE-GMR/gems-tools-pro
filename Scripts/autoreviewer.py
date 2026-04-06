@@ -1,10 +1,12 @@
+# modules included with ArcGIS Pro
 import arcpy,sys,os
-from misc_arcpy_ops import default_env_parameters,deselectObjects
-from misc_ops import ref_info,makeListIntArray
 from os.path import exists
 from array import array
 from openpyxl import Workbook,load_workbook
+# custom modules
 from fundamentals import rgb_into_cmy,cmy_into_wpg
+from misc_arcpy_ops import default_env_parameters,deselectObjects
+from misc_ops import ref_info,makeListIntArray
 
 # sys.argv[0] is reserved.
 gdb_path = sys.argv[1]
