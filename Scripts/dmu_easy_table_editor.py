@@ -1,9 +1,11 @@
+# modules included with ArcGIS Pro
 import arcpy,sys,os
-from misc_arcpy_ops import default_env_parameters,deselectObjects
 from misc_ops import randstr
 from os.path import exists
 from openpyxl import Workbook,load_workbook
 from time import sleep
+# custom module
+from misc_arcpy_ops import default_env_parameters,deselectObjects
 
 gdb_path = sys.argv[1].replace('\\','/')
 auto_delete_dmu_backup = sys.argv[2]
