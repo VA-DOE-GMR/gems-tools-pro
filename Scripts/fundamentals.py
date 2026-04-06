@@ -1,7 +1,10 @@
+# module included with ArcGIS Pro
+from decimal import Decimal,localcontext
+# modules included with toolbox.
 import colorsys
 from colormath.color_objects import LabColor,sRGBColor
 from colormath.color_conversions import convert_color
-from decimal import Decimal,localcontext
+# custom module
 from color_code_dict import color_dict
 
 ## COLOR CONVERSIONS
