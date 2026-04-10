@@ -46,15 +46,26 @@ def generateNewGDBProject(gdb_path : str, neo_gdb_location : str, neo_gdb_name :
 
     del tables
 
-    for dataset in datasets:
-        arcpy.AddMessage(f"Creating {dataset} dataset with new projection...")
-        arcpy.management.CreateFeatureDataset(neo_gdb_path,dataset,neo_spatial_reference)
-        arcpy.AddMessage(f"{dataset} dataset generated.")
-        src_dataset_path = f'{arcpy.env.workspace}/{dataset}'
-        dest_dataset_path = f'{neo_gdb_path}/{dataset}'
-        for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset)):
-            arcpy.AddMessage(f"Projecting and copying {fc}...")
-            arcpy.management.Project(f'{src_dataset_path}/{fc}',f'{dest_dataset_path}/{fc}',neo_spatial_reference,transform_method=transformation_method,preserve_shape=add_vertices)
+    if transformation_method == 'N/A':
+        for dataset in datasets:
+            arcpy.AddMessage(f"Creating {dataset} dataset with new projection...")
+            arcpy.management.CreateFeatureDataset(neo_gdb_path,dataset,neo_spatial_reference)
+            arcpy.AddMessage(f"{dataset} dataset generated.")
+            src_dataset_path = f'{arcpy.env.workspace}/{dataset}'
+            dest_dataset_path = f'{neo_gdb_path}/{dataset}'
+            for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset)):
+                arcpy.AddMessage(f"Projecting and copying {fc}...")
+                arcpy.management.Project(f'{src_dataset_path}/{fc}',f'{dest_dataset_path}/{fc}',neo_spatial_reference)
+    else:
+        for dataset in datasets:
+            arcpy.AddMessage(f"Creating {dataset} dataset with new projection...")
+            arcpy.management.CreateFeatureDataset(neo_gdb_path,dataset,neo_spatial_reference)
+            arcpy.AddMessage(f"{dataset} dataset generated.")
+            src_dataset_path = f'{arcpy.env.workspace}/{dataset}'
+            dest_dataset_path = f'{neo_gdb_path}/{dataset}'
+            for fc in tuple(arcpy.ListFeatureClasses(feature_dataset=dataset)):
+                arcpy.AddMessage(f"Projecting and copying {fc}...")
+                arcpy.management.Project(f'{src_dataset_path}/{fc}',f'{dest_dataset_path}/{fc}',neo_spatial_reference,transform_method=transformation_method,preserve_shape=add_vertices)
 
     arcpy.AddMessage("Geodatabase with new projection successfully generated.")
 
