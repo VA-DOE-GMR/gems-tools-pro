@@ -110,9 +110,7 @@ def dmu_excel_editor(gdb_path : str, auto_delete_dmu_backup : bool) -> None:
 
     if not valid_saved_file:
         arcpy.AddError("\n\nInvalid changes have been made in the temporary Excel copy of the DescriptionOfMapUnits table!\n\nEdits will be discarded.")
-        edit = GeMS_Editor()
         arcpy.management.Delete(dmu_backup_path)
-        edit.end_session()
         try: remove(temp_excel_path)
         except Exception: pass
 
@@ -126,7 +124,7 @@ def dmu_excel_editor(gdb_path : str, auto_delete_dmu_backup : bool) -> None:
     ws = wb['DescriptionOfMapUnits']
     for n in range(1,1000):
         try:
-            if ws[f'B{n+1}'].value in null_vars and ws[f'C{n+1}'].value in null_vars and ws[f'F{n+1}'].value in null_vars and ws[f'G{n+1}'].value in null_vars and ws[f'L{n+1}'].value in null_vars:
+            if ws[f'A{n+1}'].value in null_vars and ws[f'B{n+1}'].value in null_vars and ws[f'C{n+1}'].value in null_vars and ws[f'E{n+1}'].value in null_vars and ws[f'F{n+1}'].value in null_vars and ws[f'G{n+1}'].value in null_vars and ws[f'H{n+1}'].value in null_vars and ws[f'I{n+1}'].value in null_vars and ws[f'L{n+1}'].value in null_vars:
                 break
         except Exception:
             break
@@ -161,26 +159,24 @@ def dmu_excel_editor(gdb_path : str, auto_delete_dmu_backup : bool) -> None:
 
     del redundant_found
 
-    edit = GeMS_Editor()
-
     if (new_num := len((dmu_table := tuple(dmu_table)))) > old_num:
         with arcpy.da.InsertCursor(dmu_path,fields) as cursor:
             for n in range(new_num - old_num):
                 cursor.insertRow([None for x in range_14])
     elif new_num < old_num:
+        edit = GeMS_Editor()
         with arcpy.da.UpdateCursor(dmu_path,fields) as cursor:
             min_deletion = old_num - new_num
             num_deleted = 0
             for row in cursor:
                 if min_deletion == num_deleted:
                     break
-                cursor.deleteRow(row)
+                cursor.deleteRow()
                 num_deleted += 1
+        edit.end_session()
 
     try: del min_deletion
     except NameError: pass
-
-    edit.end_session()
 
     edit = GeMS_Editor()
 
@@ -203,9 +199,7 @@ def dmu_excel_editor(gdb_path : str, auto_delete_dmu_backup : bool) -> None:
     del dmu_table ; del fields
 
     if auto_delete_dmu_backup == 'true':
-        edit = GeMS_Editor()
         arcpy.management.Delete(dmu_backup_path)
-        edit.end_session()
 
     if exists(temp_excel_path):
         try: os.remove(temp_excel_path)
