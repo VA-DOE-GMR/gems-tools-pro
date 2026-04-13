@@ -40,7 +40,7 @@ def dmu_excel_editor(gdb_path : str, auto_delete_dmu_backup : bool) -> None:
     # Generate backup DMU
     edit = GeMS_Editor()
 
-    arcpy.management.Copy(dmu_path,f'{dmu_path}_BACKUP')
+    arcpy.management.Copy(dmu_path,(dmu_backup_path := f'{dmu_path}_BACKUP_{randstr()}'))
 
     edit.end_session()
 
@@ -111,7 +111,7 @@ def dmu_excel_editor(gdb_path : str, auto_delete_dmu_backup : bool) -> None:
     if not valid_saved_file:
         arcpy.AddError("\n\nInvalid changes have been made in the temporary Excel copy of the DescriptionOfMapUnits table!\n\nEdits will be discarded.")
         edit = GeMS_Editor()
-        arcpy.management.Delete(f'{dmu_path}_BACKUP_{randstr()}')
+        arcpy.management.Delete(dmu_backup_path)
         edit.end_session()
         try: remove(temp_excel_path)
         except Exception: pass
@@ -204,7 +204,7 @@ def dmu_excel_editor(gdb_path : str, auto_delete_dmu_backup : bool) -> None:
 
     if auto_delete_dmu_backup == 'true':
         edit = GeMS_Editor()
-        arcpy.management.Delete(f'{dmu_path}_BACKUP_{randstr()}')
+        arcpy.management.Delete(dmu_backup_path)
         edit.end_session()
 
     if exists(temp_excel_path):
