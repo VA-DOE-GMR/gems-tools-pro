@@ -124,7 +124,11 @@ def dmu_excel_editor(gdb_path : str, auto_delete_dmu_backup : bool) -> None:
     ws = wb['DescriptionOfMapUnits']
     for n in range(1,1000):
         try:
-            if ws[f'A{n+1}'].value in null_vars and ws[f'B{n+1}'].value in null_vars and ws[f'C{n+1}'].value in null_vars and ws[f'E{n+1}'].value in null_vars and ws[f'F{n+1}'].value in null_vars and ws[f'G{n+1}'].value in null_vars and ws[f'H{n+1}'].value in null_vars and ws[f'I{n+1}'].value in null_vars and ws[f'L{n+1}'].value in null_vars:
+            counter = 0
+            for x in range(65,79):
+                if not ws[f'{chr(x)}{n+1}'].value in null_vars:
+                    counter += 1
+            if not counter:
                 break
         except Exception:
             break
