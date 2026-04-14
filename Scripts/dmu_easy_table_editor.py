@@ -73,6 +73,8 @@ def dmu_excel_editor(gdb_path : str, auto_delete_dmu_backup : bool) -> None:
     for n in range(len((dmu_table := tuple(dmu_table)))):
         for x in range_14:
             ws[f'{chr(65+x)}{n+1}'] = dmu_table[n][x]
+            # Forces cells to be defaulted to Text instead of General for format.
+            ws[f'{chr(65+x)}{n+1}'].number_format = '@'
     if 'Sheet' in wb.sheetnames:
         wb.remove(wb['Sheet'])
     wb.save(temp_excel_path)
