@@ -642,7 +642,12 @@ def autoreview_GeMS(gdb_path : str, excel_path : str) -> None:
                     continue
                 del rgb_str
                 if not oid in errored_symbol_oids:
-                    if cmy_into_wpg(rgb_into_cmy(rgb_values[0],rgb_values[1],rgb_values[2])) != dmu_info[oid][8]:
+                    written_wpg_val = dmu_info[oid][8]
+                    while written_wpg_val.startswith('0'):
+                        written_wpg_val = written_wpg_val[1:]
+                    if written_wpg_val == '':
+                        written_wpg_val = '0'
+                    if cmy_into_wpg(rgb_into_cmy(rgb_values[0],rgb_values[1],rgb_values[2])) != written_wpg_val:
                         invalid_symbols[oid] = 'WPG Symbol value does not correspond to RGB value.'
                         invalid_rgbs[oid] = 'RGB value does not correspond to WPG Symbol value.'
                 del rgb_values
